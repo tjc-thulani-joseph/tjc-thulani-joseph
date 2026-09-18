@@ -44,21 +44,45 @@ async function buildSession(user: { id: string; email?: string | null; user_meta
   };
 }
 
+/** Network failures surface as "Failed to fetch" — translate them into something actionable. */
+const isNetworkError = (error: unknown) =>
+  error instanceof TypeError ||
+  /failed to fetch|network|load failed|fetch failed/i.test(
+    (error as { message?: string } | null)?.message ?? "",
+  );
+
+const UNREACHABLE_MESSAGE =
+  "Cannot reach the backend at " +
+  ((import.meta.env['VITE_SUPABASE_URL'] as string | undefined) ?? "the configured address") +
+  ". Check that the project URL and key in .env are correct and the project is active.";
+
 const auth: AuthService = {
   async getSession() {
-    const { data } = await client().auth.getSession();
-    if (!data.session) return null;
-    const { data: verified } = await client().auth.getUser();
-    if (!verified.user) return null;
-    return buildSession(verified.user, data.session.expires_at ?? null);
+    try {
+      const { data } = await client().auth.getSession();
+      if (!data.session) return null;
+      const { data: verified } = await client().auth.getUser();
+      if (!verified.user) return null;
+      return buildSession(verified.user, data.session.expires_at ?? null);
+    } catch {
+      return null;
+    }
   },
 
   async signIn({ email, password }) {
-    const { data, error } = await client().auth.signInWithPassword({ email, password });
-    if (error) return err("auth_sign_in_failed", error.message);
-    const session = await buildSession(data.user, data.session?.expires_at ?? null);
-    if (!session) return err("auth_sign_in_failed", "Could not establish a session.");
-    return ok(session);
+    try {
+      const { data, error } = await client().auth.signInWithPassword({ email, password });
+      if (error) {
+        if (isNetworkError(error)) return err("auth_unreachable", UNREACHABLE_MESSAGE);
+        return err("auth_sign_in_failed", error.message);
+      }
+      const session = await buildSession(data.user, data.session?.expires_at ?? null);
+      if (!session) return err("auth_sign_in_failed", "Could not establish a session.");
+      return ok(session);
+    } catch (caught) {
+      if (isNetworkError(caught)) return err("auth_unreachable", UNREACHABLE_MESSAGE);
+      return err("auth_sign_in_failed", (caught as Error)?.message ?? "Sign in failed.");
+    }
   },
 
   async signOut() {
