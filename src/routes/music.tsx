@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PublishedCollection } from "@/components/public/published-collection";
+import { MediaCollection } from "@/components/public/media-collection";
 import { PageHero } from "@/components/layout/page-hero";
 import { PublicLayout } from "@/components/layout/public-layout";
 
@@ -21,7 +21,7 @@ function Page() {
   return (
     <PublicLayout>
       <PageHero eyebrow="Music" title="Music" intro="Albums, singles and the sound of Thulani Joseph." />
-      <PublishedCollection resource="songs" emptyTitle="No releases published yet" emptyBody="Albums and songs added in the TJC OS Music Manager will be listed here." />
+      <MediaCollection resource="songs" kind="audio" emptyTitle="No releases published yet" emptyBody="Albums and songs added in the TJC OS Music Manager will be listed here." />
     </PublicLayout>
   );
 }
