@@ -5,7 +5,7 @@
  * is stored in the record's `metadata` jsonb.
  */
 
-export type FieldKind = "text" | "textarea" | "date" | "boolean" | "media";
+export type FieldKind = "text" | "textarea" | "date" | "boolean" | "media" | "url";
 
 export interface FieldDef {
   /** Key in the record (column) or in metadata when `meta` is true. */
@@ -45,7 +45,9 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
       { key: "release_date", label: "Release date", kind: "date", meta: true },
       { key: "description", label: "Description", kind: "textarea", placeholder: "Short description" },
       { key: "cover", label: "Cover image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
+      { key: "cover_url", label: "External cover image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/cover.jpg" },
       { key: "audio", label: "Audio file", kind: "media", meta: true, bucket: "music", accept: "audio/*", mirrorTo: "url" },
+      { key: "audio_url", label: "External audio URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/song.mp3" },
     ],
   },
   videos: {
@@ -59,7 +61,9 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
       { key: "release_date", label: "Release date", kind: "date", meta: true },
       { key: "description", label: "Description", kind: "textarea", placeholder: "Short description" },
       { key: "thumbnail", label: "Thumbnail", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
+      { key: "thumbnail_url", label: "External thumbnail URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/thumbnail.jpg" },
       { key: "video", label: "Video file", kind: "media", meta: true, bucket: "videos", accept: "video/*", mirrorTo: "url" },
+      { key: "video_url", label: "External video URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/video.mp4" },
     ],
   },
   gallery: {
@@ -73,6 +77,7 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
       { key: "description", label: "Caption", kind: "textarea", placeholder: "Caption shown on the public gallery" },
       { key: "featured", label: "Featured", kind: "boolean", meta: true },
       { key: "image", label: "Image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "url", required: true },
+      { key: "image_url", label: "External image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/image.jpg" },
     ],
   },
 };
