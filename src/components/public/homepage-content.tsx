@@ -55,7 +55,7 @@ export function HomepageContent() {
                     <div className="p-6">
                       <p className="text-xs uppercase tracking-[0.25em] text-gold">{item.category ?? "Release"}</p>
                       <h3 className="mt-3 font-display text-xl font-semibold">{item.title ?? "Untitled release"}</h3>
-                      {typeof metadata.artist === "string" && <p className="mt-1 text-sm text-muted-foreground">{metadata.artist}</p>}
+                      {typeof metadata["artist"] === "string" && <p className="mt-1 text-sm text-muted-foreground">{metadata["artist"]}</p>}
                       {item.description && <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.description}</p>}
                       {audio ? <audio controls preload="none" src={audio} className="mt-5 w-full" aria-label={`Play ${item.title ?? "release"}`} /> : <Link to="/music" className="mt-5 inline-flex items-center gap-2 text-sm text-gold">Listen now <ArrowRight className="size-4" aria-hidden /></Link>}
                     </div>
