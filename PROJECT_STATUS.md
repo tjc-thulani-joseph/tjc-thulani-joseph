@@ -24,4 +24,12 @@ The implementation is committed on `feature/phase-0-2-public-homepage`. It must 
 - Final diff and architecture review
 - Responsive/browser verification at mobile, tablet, and desktop widths where available
 
-No database schema, storage bucket, CMS, API, or future-phase system changes are included in this phase.
+## Phase 1 — Internal Event Architecture Foundation
+
+**Status: IN PROGRESS**
+
+Added a provider-agnostic internal event contract and process-local event bus backed by the existing activity-log service. The first real integration emits `newsletter.subscriber.created` after a successful newsletter subscription. Event persistence and handlers are isolated so event failures do not fail the original operation.
+
+Database schema changes are not required at this stage. Existing activity logs remain audit records; emitted events are stored with `action: event.emitted` and structured metadata for future Automation Center and AI Center consumers.
+
+Verification is pending. Future automation, AI, notifications, messaging, social publishing, payments, and Q Points consumers are not included.
