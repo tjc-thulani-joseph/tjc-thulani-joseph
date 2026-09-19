@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PublishedCollection } from "@/components/public/published-collection";
+import { MediaCollection } from "@/components/public/media-collection";
 import { PageHero } from "@/components/layout/page-hero";
 import { PublicLayout } from "@/components/layout/public-layout";
 
@@ -21,7 +21,7 @@ function Page() {
   return (
     <PublicLayout>
       <PageHero eyebrow="Gallery" title="Gallery" intro="Photography from the stage, the studio and everything in between." />
-      <PublishedCollection resource="gallery" emptyTitle="No photographs published yet" emptyBody="Photo sets added in the TJC OS Gallery Manager will appear here." />
+      <MediaCollection resource="gallery" kind="image" emptyTitle="No photographs published yet" emptyBody="Photo sets added in the TJC OS Gallery Manager will appear here." />
     </PublicLayout>
   );
 }

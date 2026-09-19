@@ -3,6 +3,8 @@ import { DASHBOARD_MODULES, getModule } from "@/config/dashboard-modules";
 import { ModuleWorkspace } from "@/components/dashboard/module-workspace";
 import { OverviewModule } from "@/components/dashboard/overview-module";
 import { MediaLibrary } from "@/components/dashboard/media-library";
+import { ContentManager } from "@/components/dashboard/content-manager";
+import { getContentSchema } from "@/config/content-schemas";
 import { useAuth } from "@/contexts/auth-context";
 
 export const Route = createFileRoute("/_authenticated/dashboard/$module")({
@@ -41,5 +43,7 @@ function ModulePage() {
 
   if (module.slug === "overview") return <OverviewModule />;
   if (module.slug === "media") return <MediaLibrary />;
+  const schema = getContentSchema(module.resource);
+  if (schema) return <ContentManager schema={schema} description={module.description} />;
   return <ModuleWorkspace module={module} />;
 }
