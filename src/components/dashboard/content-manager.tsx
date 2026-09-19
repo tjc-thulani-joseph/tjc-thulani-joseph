@@ -51,6 +51,25 @@ function draftFromRecord(schema: ContentSchema, record: ContentRecord): Draft {
   return draft;
 }
 
+function applyPublicationState(payload: Record<string, unknown>, record: ContentRecord | null, publish?: boolean) {
+  if (publish === true) {
+    payload["status"] = "published";
+    payload["published_at"] = new Date().toISOString();
+    return;
+  }
+
+  if (publish === false) {
+    payload["status"] = "draft";
+    payload["published_at"] = null;
+    return;
+  }
+
+  if (!record) {
+    payload["status"] = "draft";
+    payload["published_at"] = null;
+  }
+}
+
 /** Turns the editor draft into the row shape of the existing content table. */
 function toPayload(schema: ContentSchema, draft: Draft, base?: ContentRecord): Partial<ContentRecord> {
   const metadata: Record<string, unknown> = { ...((base?.metadata ?? {}) as Record<string, unknown>) };
@@ -94,12 +113,7 @@ export function ContentManager({ schema, description }: { schema: ContentSchema;
   const save = useMutation({
     mutationFn: async ({ draft, record, publish }: { draft: Draft; record: ContentRecord | null; publish?: boolean }) => {
       const payload = toPayload(schema, draft, record ?? undefined) as Record<string, unknown>;
-      if (publish !== undefined) {
-        payload['status'] = publish ? "published" : "draft";
-        payload['published_at'] = publish ? new Date().toISOString() : null;
-      } else if (!record) {
-        payload['status'] = "draft";
-      }
+      applyPublicationState(payload, record, publish);
       const result = record
         ? await repo.update(record.id, payload as Partial<ContentRecord>)
         : await repo.create(payload as Partial<ContentRecord>);
@@ -111,8 +125,10 @@ export function ContentManager({ schema, description }: { schema: ContentSchema;
         variables.publish === true
           ? `${schema.singular} published`
           : variables.publish === false
-            ? `${schema.singular} unpublished`
-            : "Saved",
+            ? `${schema.singular} saved as draft`
+            : variables.record
+              ? `${schema.singular} saved`
+              : `${schema.singular} created`,
       );
       setEditing(null);
       invalidate();
@@ -304,7 +320,7 @@ export function ContentManager({ schema, description }: { schema: ContentSchema;
               variant="outline"
               className="hairline-gold bg-transparent"
               disabled={save.isPending}
-              onClick={() => editing && save.mutate({ draft: editing.draft, record: editing.record })}
+              onClick={() => editing && save.mutate({ draft: editing.draft, record: editing.record, publish: false })}
             >
               Save draft
             </Button>
