@@ -228,6 +228,19 @@
   }
 }
 
+@utility home-section {
+  padding-block: 5rem;
+
+  @media (min-width: 768px) {
+    padding-block: 8rem;
+  }
+}
+
+@utility home-hero-image {
+  animation: tjc-cinematic-drift 18s var(--ease-premium) both;
+  transform-origin: center;
+}
+
 @utility animate-rise {
   animation: tjc-rise 0.7s var(--ease-premium) both;
 }
@@ -240,5 +253,29 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes tjc-cinematic-drift {
+  from {
+    transform: scale(1.03) translate3d(-0.5%, 0, 0);
+  }
+  to {
+    transform: scale(1.08) translate3d(0.5%, -0.5%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
