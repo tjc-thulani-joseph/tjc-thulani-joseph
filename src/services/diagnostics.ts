@@ -60,7 +60,7 @@ export async function runBackendDiagnostics(): Promise<BackendDiagnostics> {
     key: "auth",
     label: "Authentication state",
     state: "pass",
-    detail: `Authenticated session resolved for ${session.user.email || "current user"}.`,
+    detail: "Authenticated session resolved.",
   });
 
   const roles = session.user.roles ?? [];
@@ -68,9 +68,7 @@ export async function runBackendDiagnostics(): Promise<BackendDiagnostics> {
     key: "role",
     label: "Role resolution",
     state: roles.length ? "pass" : "blocked",
-    detail: roles.length
-      ? `Resolved roles: ${roles.join(", ")}.`
-      : "No roles were resolved for the authenticated user.",
+    detail: roles.length ? `Resolved roles: ${roles.join(", ")}.` : "No roles were resolved for the authenticated user.",
   });
 
   const safeRead = await services().repository("posts").list({ perPage: 1 });
