@@ -555,25 +555,26 @@ box-shadow: var(--shadow-gold);
 box-shadow: var(--shadow-gold-soft);
 }
 
-@utility gold-halo {
-position: relative;
-isolation: isolate;
+.gold-halo {
+  position: relative;
+  isolation: isolate;
 }
 
-@utility gold-halo::before {
-content: "";
-position: absolute;
-inset: -15%;
-z-index: -1;
-pointer-events: none;
-background: radial-gradient(
-circle,
-color-mix(in oklab, var(--gold) 16%, transparent),
-transparent 68%
-);
-filter: blur(24px);
+.gold-halo::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at center,
+    color-mix(in oklab, var(--gold) 22%, transparent),
+    transparent 68%
+  );
+  filter: blur(28px);
+  opacity: 0.8;
 }
-
 /* ===============================================================
 
 * IMAGE TREATMENT
