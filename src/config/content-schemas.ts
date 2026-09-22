@@ -23,7 +23,7 @@ export interface FieldDef {
 }
 
 export interface ContentSchema {
-  resource: "songs" | "videos" | "gallery";
+  resource: "posts" | "songs" | "videos" | "gallery" | "biography";
   label: string;
   singular: string;
   /** Media field whose preview drives the card in the manager list. */
@@ -32,6 +32,21 @@ export interface ContentSchema {
 }
 
 export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
+  posts: {
+    resource: "posts",
+    label: "Blog Manager",
+    singular: "Post",
+    previewField: "featured_image",
+    fields: [
+      { key: "title", label: "Title", kind: "text", required: true, placeholder: "Post title" },
+      { key: "description", label: "Excerpt", kind: "textarea", required: true, placeholder: "Short introduction shown on the public blog" },
+      { key: "body", label: "Content", kind: "textarea", required: true, placeholder: "Write the post content" },
+      { key: "category", label: "Category", kind: "text", placeholder: "Journal, announcement, or reflection" },
+      { key: "tags", label: "Tags", kind: "text", meta: true, placeholder: "creative, music, filmmaking" },
+      { key: "featured_image", label: "Featured image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
+      { key: "featured_image_url", label: "External featured image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/image.jpg" },
+    ],
+  },
   songs: {
     resource: "songs",
     label: "Music Manager",
@@ -78,6 +93,21 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
       { key: "featured", label: "Featured", kind: "boolean", meta: true },
       { key: "image", label: "Image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "url", required: true },
       { key: "image_url", label: "External image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/image.jpg" },
+    ],
+  },
+  biography: {
+    resource: "biography",
+    label: "Biography",
+    singular: "Biography",
+    previewField: "profile_image",
+    fields: [
+      { key: "title", label: "Title", kind: "text", required: true, placeholder: "About TJC" },
+      { key: "description", label: "Introduction", kind: "textarea", required: true, placeholder: "Short biography introduction" },
+      { key: "body", label: "Biography", kind: "textarea", required: true, placeholder: "Full biography" },
+      { key: "category", label: "Category", kind: "text", placeholder: "Personal brand" },
+      { key: "tags", label: "Tags", kind: "text", meta: true, placeholder: "storytelling, music, acting" },
+      { key: "profile_image", label: "Profile image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
+      { key: "profile_image_url", label: "External profile image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/profile.jpg" },
     ],
   },
 };
