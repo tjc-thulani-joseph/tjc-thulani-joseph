@@ -23,7 +23,7 @@ export interface FieldDef {
 }
 
 export interface ContentSchema {
-  resource: "posts" | "songs" | "videos" | "gallery" | "biography";
+  resource: "songs" | "videos" | "gallery";
   label: string;
   singular: string;
   /** Media field whose preview drives the card in the manager list. */
@@ -32,21 +32,6 @@ export interface ContentSchema {
 }
 
 export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
-  biography: {
-    resource: "biography",
-    label: "Biography",
-    singular: "Biography",
-    previewField: "profile_image",
-    fields: [
-      { key: "title", label: "Title", kind: "text", required: true, placeholder: "About TJC" },
-      { key: "description", label: "Introduction", kind: "textarea", required: true, placeholder: "Short biography introduction" },
-      { key: "body", label: "Biography", kind: "textarea", required: true, placeholder: "Full biography" },
-      { key: "category", label: "Category", kind: "text", placeholder: "Personal brand" },
-      { key: "tags", label: "Tags", kind: "text", meta: true, placeholder: "storytelling, music, acting" },
-      { key: "profile_image", label: "Profile image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
-      { key: "profile_image_url", label: "External profile image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/profile.jpg" },
-    ],
-  },
   songs: {
     resource: "songs",
     label: "Music Manager",

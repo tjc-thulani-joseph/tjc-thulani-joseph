@@ -2,15 +2,14 @@
  * Single source of truth for public brand metadata and navigation.
  * Update here — every layout, menu and SEO tag reads from this file.
  */
-import { TJC_IDENTITY } from "./identity";
-
 export const SITE = {
-  brand: TJC_IDENTITY.alternateName,
-  name: TJC_IDENTITY.name,
-  fullName: TJC_IDENTITY.label,
+  brand: "TJC",
+  name: "Thulani Joseph",
+  fullName: "TJC | Thulani Joseph",
   system: "TJC OS",
-  tagline: "The official digital headquarters of TJC (Thulani Joseph).",
-  description: TJC_IDENTITY.description,
+  tagline: "The official digital headquarters of Thulani Joseph.",
+  description:
+    "The official home of Thulani Joseph — music, films, creative projects, writing and the story behind the work.",
   locale: "en",
 } as const;
 

@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DASHBOARD_MODULES } from "@/config/dashboard-modules";
 import { INTEGRATIONS } from "@/config/integrations";
 import { useAuth } from "@/contexts/auth-context";
-import { BackendDiagnostics } from "@/components/dashboard/backend-diagnostics";
 
 export function OverviewModule() {
   const { session } = useAuth();
@@ -41,8 +40,6 @@ export function OverviewModule() {
           ))}
         </div>
       </section>
-
-      <BackendDiagnostics />
 
       <section className="mt-12">
         <h2 className="font-display text-lg font-semibold">Integration architecture</h2>
