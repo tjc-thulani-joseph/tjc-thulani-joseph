@@ -3,41 +3,78 @@ import { services } from "@/services";
 import type { ContentRecord } from "@/types";
 
 /**
- * Shared homepage data hook. Reads published, non-deleted records through the
- * existing service/repository layer — newest first. Every homepage section
- * consumes this; nothing queries Supabase directly.
+ * Public homepage content contract.
+ *
+ * The database/RLS layer is the final security boundary:
+ *
+ *   status = published
+ *   AND deleted_at IS NULL
+ *
+ * The repository also applies the same filters at the
+ * application data layer.
  */
-export function usePublished(resource: string, limit = 6) {
+
+export function usePublished(
+  resource: string,
+  limit = 6,
+) {
   const query = useQuery({
     queryKey: ["home", resource, limit],
+
     queryFn: () =>
       services()
         .repository<ContentRecord>(resource)
-        .list({ status: "published", perPage: limit, orderBy: "published_at" }),
+        .list({
+          status: "published",
+          perPage: limit,
+          orderBy: "published_at",
+        }),
   });
-  const items = query.data?.error ? [] : (query.data?.data?.items ?? []);
-  return { items, pending: query.isPending };
+
+  const items = query.data?.error
+    ? []
+    : (query.data?.data?.items ?? []);
+
+  return {
+    items,
+    pending: query.isPending,
+    error: query.data?.error ?? null,
+  };
 }
 
-/** Reads a trimmed string out of a record's metadata jsonb. */
-export function meta(item: ContentRecord, key: string): string | null {
-  const value = (item.metadata ?? {})[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
+/**
+ * Homepage Builder public feed.
+ *
+ * This intentionally uses the same publishing contract as
+ * every other public content feed.
+ *
+ * Nothing marked draft, private, scheduled or archived
+ * should reach the public homepage.
+ */
+export function usePublishedHomepageSections(
+  limit = 30,
+) {
+  const query = useQuery({
+    queryKey: ["home", "homepage_sections", limit],
 
-export function metaFlag(item: ContentRecord, key: string): boolean {
-  return (item.metadata ?? {})[key] === true;
-}
+    queryFn: () =>
+      services()
+        .repository<ContentRecord>("homepage_sections")
+        .list({
+          status: "published",
+          perPage: limit,
+          orderBy: "position",
+          ascending: true,
+        }),
+  });
 
-/** Formats an ISO date for display; returns null for missing/invalid values. */
-export function formatDate(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric" }).format(date);
-}
+  const sections = query.data?.error
+    ? []
+    : (query.data?.data?.items ?? []);
 
-/** Featured-flagged records first, preserving the newest-first order otherwise. */
-export function featuredFirst(items: ContentRecord[]): ContentRecord[] {
-  return [...items].sort((a, b) => Number(metaFlag(b, "featured")) - Number(metaFlag(a, "featured")));
+  return {
+    sections,
+    pending: query.isPending,
+    error: query.data?.error ?? null,
+  };
 }
