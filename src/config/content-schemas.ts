@@ -23,7 +23,7 @@ export interface FieldDef {
 }
 
 export interface ContentSchema {
-  resource: "posts" | "songs" | "videos" | "gallery" | "biography" | "projects";
+  resource: "posts" | "songs" | "videos" | "gallery" | "biography" | "projects" | "homepage_sections";
   label: string;
   singular: string;
   /** Media field whose preview drives the card in the manager list. */
@@ -171,6 +171,68 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         kind: "url",
         meta: true,
         placeholder: "https://example.com/project",
+      },
+    ],
+  },
+  homepage_sections: {
+    resource: "homepage_sections",
+    label: "Homepage Builder",
+    singular: "Homepage Section",
+    previewField: "section_image",
+    fields: [
+      {
+        key: "title",
+        label: "Section title",
+        kind: "text",
+        required: true,
+        placeholder: "Homepage section title",
+      },
+      {
+        key: "description",
+        label: "Description",
+        kind: "textarea",
+        placeholder: "Short section description",
+      },
+      {
+        key: "body",
+        label: "Content",
+        kind: "textarea",
+        placeholder: "Homepage section content",
+      },
+      {
+        key: "category",
+        label: "Section type",
+        kind: "text",
+        placeholder: "Hero, featured, about, music, video, etc.",
+      },
+      {
+        key: "section_image",
+        label: "Section image",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "thumbnail_url",
+      },
+      {
+        key: "section_image_url",
+        label: "External section image URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/image.jpg",
+      },
+      {
+        key: "section_url",
+        label: "Section URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/page",
+      },
+      {
+        key: "featured",
+        label: "Featured",
+        kind: "boolean",
+        meta: true,
       },
     ],
   },
