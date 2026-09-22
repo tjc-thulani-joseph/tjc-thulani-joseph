@@ -43,6 +43,50 @@ export function usePublished(
 }
 
 /**
+ * Returns featured content first while preserving the
+ * original order of non-featured content.
+ *
+ * Content can mark itself as featured through metadata.
+ */
+export function featuredFirst(
+  items: ContentRecord[],
+): ContentRecord[] {
+  return [...items].sort((a, b) => {
+    const aFeatured = Boolean(a.metadata?.featured);
+    const bFeatured = Boolean(b.metadata?.featured);
+
+    if (aFeatured === bFeatured) {
+      return 0;
+    }
+
+    return bFeatured ? 1 : -1;
+  });
+}
+
+/**
+ * Formats a published date for public editorial presentation.
+ */
+export function formatDate(
+  value: string | null | undefined,
+): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+/**
  * Homepage Builder public feed.
  *
  * This intentionally uses the same publishing contract as
