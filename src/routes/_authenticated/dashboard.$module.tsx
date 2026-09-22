@@ -6,6 +6,7 @@ import { MediaLibrary } from "@/components/dashboard/media-library";
 import { MessagesManager } from "@/components/dashboard/messages-manager";
 import { ContactRequestsManager } from "@/components/dashboard/contact-requests-manager";
 import { NewsletterManager } from "@/components/dashboard/newsletter-manager";
+import { ActivityLogsManager } from "@/components/dashboard/activity-logs-manager";
 import { ContentManager } from "@/components/dashboard/content-manager";
 import { getContentSchema } from "@/config/content-schemas";
 import { useAuth } from "@/contexts/auth-context";
@@ -49,6 +50,7 @@ function ModulePage() {
   if (module.resource === "messages") return <MessagesManager />;
   if (module.resource === "contacts") return <ContactRequestsManager />;
   if (module.resource === "newsletter") return <NewsletterManager />;
+  if (module.resource === "activity_logs") return <ActivityLogsManager />;
   const schema = getContentSchema(module.resource);
   if (schema) return <ContentManager schema={schema} description={module.description} />;
   return <ModuleWorkspace module={module} />;
