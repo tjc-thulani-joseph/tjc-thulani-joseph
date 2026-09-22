@@ -2,7 +2,12 @@
 
 export type UUID = string;
 
-export type ContentStatus = "draft" | "scheduled" | "published" | "archived";
+export type ContentStatus =
+  | "draft"
+  | "private"
+  | "scheduled"
+  | "published"
+  | "archived";
 
 /** Every persisted record in TJC OS carries this envelope. */
 export interface BaseRecord {
@@ -43,7 +48,9 @@ export interface Credentials {
   password: string;
 }
 
-export type Result<T> = { data: T; error: null } | { data: null; error: ServiceError };
+export type Result<T> =
+  | { data: T; error: null }
+  | { data: null; error: ServiceError };
 
 export interface ServiceError {
   code: string;
