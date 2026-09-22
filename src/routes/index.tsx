@@ -28,28 +28,41 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "TJC | Thulani Joseph — Official Site" },
       { name: "description", content: SITE.description },
-      { property: "og:title", content: "TJC | Thulani Joseph — Official Site" },
-      { property: "og:description", content: SITE.description },
-      { property: "og:url", content: "/" },
+      {
+        property: "og:title",
+        content: "TJC | Thulani Joseph — Official Site",
+      },
+      {
+        property: "og:description",
+        content: SITE.description,
+      },
+      {
+        property: "og:url",
+        content: "/",
+      },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [
+      {
+        rel: "canonical",
+        href: "/",
+      },
+    ],
   }),
   component: HomePage,
 });
 
 /*
- * TJC OS — PUBLIC HOMEPAGE ARCHITECTURE
+ * TJC OS — PERMANENT PUBLIC HOMEPAGE SHELL
  *
- * This route is the permanent public homepage shell.
+ * This file owns the public homepage experience.
  *
- * Architectural principles:
- * 1. Public content comes from published CMS records.
- * 2. Empty content areas disappear instead of showing placeholders.
- * 3. The homepage does not fabricate analytics, audience, AI,
- *    automation, integration or engagement data.
- * 4. Future dashboard phases connect through their existing
- *    systems rather than requiring a homepage rebuild.
- * 5. Public navigation and route ownership remain outside this file.
+ * It intentionally consumes existing published content rather
+ * than creating fake statistics, fake activity, fake AI data,
+ * fake audience information, or placeholder engagement numbers.
+ *
+ * Future TJC OS phases plug into the systems surrounding this
+ * public shell rather than requiring the homepage foundation
+ * to be rebuilt.
  */
 
 const PUBLIC_PILLARS = [
@@ -126,9 +139,15 @@ function ContentMeta({ item }: { item: ContentRecord }) {
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-      {item.category && <span className="text-gold">{item.category}</span>}
+      {item.category && (
+        <span className="text-gold">
+          {item.category}
+        </span>
+      )}
 
-      {item.category && date && <span aria-hidden>·</span>}
+      {item.category && date && (
+        <span aria-hidden>·</span>
+      )}
 
       {date && (
         <time dateTime={item.published_at ?? undefined}>
@@ -159,7 +178,11 @@ function EditorialCard({
         <div className="image-editorial relative aspect-[4/3] overflow-hidden bg-secondary">
           <SafeImage
             src={image}
-            alt={image ? item.title ?? "TJC creative work" : ""}
+            alt={
+              image
+                ? item.title ?? "TJC creative work"
+                : ""
+            }
             className="size-full object-cover"
             fallback={<ContentFallback />}
           />
@@ -282,7 +305,9 @@ function CurrentWorld({
               <article className="hero-cinematic relative h-full min-h-[30rem] overflow-hidden rounded-2xl border border-border">
                 <SafeImage
                   src={imageFor(lead.item, lead.kind)}
-                  alt={lead.item.title ?? "Featured TJC work"}
+                  alt={
+                    lead.item.title ?? "Featured TJC work"
+                  }
                   className="hero-backdrop-image absolute inset-0 size-full object-cover"
                   fallback={<ContentFallback />}
                 />
@@ -350,7 +375,10 @@ function ExploreUniverse() {
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {PUBLIC_PILLARS.map((pillar, index) => (
-            <Reveal key={pillar.to} delay={index * 60}>
+            <Reveal
+              key={pillar.to}
+              delay={index * 60}
+            >
               <Link
                 to={pillar.to}
                 className="card-lift surface-panel group relative block h-full overflow-hidden rounded-2xl p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-7"
@@ -389,7 +417,7 @@ function ExploreUniverse() {
       </div>
     </section>
   );
-}
+  }
 
 function ContentSection({
   items,
@@ -467,7 +495,10 @@ function StorySection() {
             className="mt-7 inline-flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-gold transition-colors hover:text-gold-soft"
           >
             Read the story
-            <ArrowRight className="size-3.5" aria-hidden />
+            <ArrowRight
+              className="size-3.5"
+              aria-hidden
+            />
           </Link>
         </Reveal>
 
@@ -496,7 +527,10 @@ function StorySection() {
             >
               <Link to="/contact">
                 Start a conversation
-                <ArrowRight className="size-4" aria-hidden />
+                <ArrowRight
+                  className="size-4"
+                  aria-hidden
+                />
               </Link>
             </Button>
           </div>
@@ -544,7 +578,10 @@ function FinalGateway() {
                 >
                   <Link to="/projects">
                     Explore projects
-                    <ArrowRight className="size-4" aria-hidden />
+                    <ArrowRight
+                      className="size-4"
+                      aria-hidden
+                    />
                   </Link>
                 </Button>
 
@@ -569,11 +606,11 @@ function FinalGateway() {
 
 function HomePage() {
   /*
-   * These are the public content feeds controlled by the
-   * existing publishing system.
+   * Public content feeds.
    *
-   * Future dashboard phases do not need to rewrite this shell.
-   * They can affect the systems/data consumed here.
+   * These consume the existing publishing system.
+   * Future dashboard phases can update the underlying
+   * content and systems without replacing this homepage.
    */
   const music = usePublished("songs", 6);
   const videos = usePublished("videos", 6);
@@ -583,9 +620,9 @@ function HomePage() {
 
   return (
     <PublicLayout>
-      {/* =========================================================
-          01 — IDENTITY / HERO
-          ========================================================= */}
+      {/* =====================================================
+          01 — HERO / IDENTITY
+          ===================================================== */}
       <section className="hero-cinematic relative isolate overflow-hidden">
         <img
           src={heroBackdrop}
@@ -635,7 +672,10 @@ function HomePage() {
               >
                 <Link to="/about">
                   The story
-                  <ArrowRight className="size-4" aria-hidden />
+                  <ArrowRight
+                    className="size-4"
+                    aria-hidden
+                  />
                 </Link>
               </Button>
 
@@ -651,7 +691,7 @@ function HomePage() {
               </Button>
             </div>
           </Reveal>
-          
+
           <Reveal delay={320}>
             <a
               href="#current"
@@ -672,9 +712,9 @@ function HomePage() {
         />
       </section>
 
-      {/* =========================================================
+      {/* =====================================================
           02 — CURRENT / FEATURED WORLD
-          ========================================================= */}
+          ===================================================== */}
       <CurrentWorld
         music={music.items}
         videos={videos.items}
@@ -683,14 +723,14 @@ function HomePage() {
         posts={posts.items}
       />
 
-      {/* =========================================================
+      {/* =====================================================
           03 — PUBLIC CREATIVE UNIVERSE
-          ========================================================= */}
+          ===================================================== */}
       <ExploreUniverse />
 
-      {/* =========================================================
-          04 — PUBLISHED CONTENT STREAMS
-          ========================================================= */}
+      {/* =====================================================
+          04 — PUBLISHED CONTENT
+          ===================================================== */}
       <ContentSection
         items={music.items}
         eyebrow="Latest release"
@@ -738,17 +778,15 @@ function HomePage() {
         label="Read the journal"
       />
 
-      {/* =========================================================
-          05 — STORY / BIOGRAPHY GATEWAY
-          ========================================================= */}
+      {/* =====================================================
+          05 — STORY / BIOGRAPHY
+          ===================================================== */}
       <StorySection />
 
-      {/* =========================================================
-          06 — PUBLIC COLLABORATION / CONTACT GATEWAY
-          ========================================================= */}
+      {/* =====================================================
+          06 — CONTACT / COLLABORATION
+          ===================================================== */}
       <FinalGateway />
     </PublicLayout>
   );
-}
-Why I'm comfortable
-          
+                  }
