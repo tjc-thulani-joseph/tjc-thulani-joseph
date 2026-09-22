@@ -74,7 +74,7 @@ export function BackendDiagnostics() {
       <DialogTrigger asChild>
         <button
           type="button"
-          className="mt-8 flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:border-gold/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="mt-8 flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:border-gold/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
           aria-label="Open backend diagnostics"
         >
           <span>
@@ -97,7 +97,7 @@ export function BackendDiagnostics() {
             <CardTitle className="text-base font-medium">System health &amp; connection status</CardTitle>
           </CardHeader>
           <CardContent>
-            <DiagnosticDetails checks={query.data?.checks} loading={query.isPending} error={Boolean(query.error)} />
+            <DiagnosticDetails checks={query.data?.checks ?? []} loading={query.isPending} error={Boolean(query.error)} />
           </CardContent>
         </Card>
       </DialogContent>
