@@ -1,8 +1,7 @@
 /**
- * Field definitions for the media content managers (songs, videos, gallery).
- * These describe how the existing generic content tables are used — no new
- * tables are introduced. Plain columns map to table columns; everything else
- * is stored in the record's `metadata` jsonb.
+ * Field definitions for the existing content managers.
+ * Plain columns map to table columns; fields marked `meta` are stored in the
+ * record's metadata jsonb so the existing generic content tables remain intact.
  */
 
 export type FieldKind = "text" | "textarea" | "date" | "boolean" | "media" | "url";
@@ -23,7 +22,7 @@ export interface FieldDef {
 }
 
 export interface ContentSchema {
-  resource: "songs" | "videos" | "gallery";
+  resource: "posts" | "songs" | "videos" | "gallery";
   label: string;
   singular: string;
   /** Media field whose preview drives the card in the manager list. */
@@ -32,6 +31,58 @@ export interface ContentSchema {
 }
 
 export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
+  posts: {
+    resource: "posts",
+    label: "Blog Manager",
+    singular: "Post",
+    previewField: "featured_image",
+    fields: [
+      { key: "title", label: "Title", kind: "text", required: true, placeholder: "Post title" },
+      {
+        key: "description",
+        label: "Excerpt",
+        kind: "textarea",
+        required: true,
+        placeholder: "Short introduction shown on the public blog",
+      },
+      {
+        key: "body",
+        label: "Content",
+        kind: "textarea",
+        required: true,
+        placeholder: "Write the post content",
+      },
+      {
+        key: "category",
+        label: "Category",
+        kind: "text",
+        placeholder: "Journal, announcement, or reflection",
+      },
+      {
+        key: "tags",
+        label: "Tags",
+        kind: "text",
+        meta: true,
+        placeholder: "creative, music, filmmaking",
+      },
+      {
+        key: "featured_image",
+        label: "Featured image",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "thumbnail_url",
+      },
+      {
+        key: "featured_image_url",
+        label: "External featured image URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/image.jpg",
+      },
+    ],
+  },
   songs: {
     resource: "songs",
     label: "Music Manager",
