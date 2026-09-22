@@ -3,6 +3,7 @@ import { DASHBOARD_MODULES, getModule } from "@/config/dashboard-modules";
 import { ModuleWorkspace } from "@/components/dashboard/module-workspace";
 import { OverviewModule } from "@/components/dashboard/overview-module";
 import { MediaLibrary } from "@/components/dashboard/media-library";
+import { MessagesManager } from "@/components/dashboard/messages-manager";
 import { ContentManager } from "@/components/dashboard/content-manager";
 import { getContentSchema } from "@/config/content-schemas";
 import { useAuth } from "@/contexts/auth-context";
@@ -43,6 +44,7 @@ function ModulePage() {
 
   if (module.slug === "overview") return <OverviewModule />;
   if (module.slug === "media") return <MediaLibrary />;
+  if (module.resource === "messages") return <MessagesManager />;
   const schema = getContentSchema(module.resource);
   if (schema) return <ContentManager schema={schema} description={module.description} />;
   return <ModuleWorkspace module={module} />;
