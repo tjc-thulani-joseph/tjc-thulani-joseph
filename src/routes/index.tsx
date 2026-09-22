@@ -12,6 +12,7 @@ import heroBackdrop from "@/assets/hero-backdrop.jpg";
 import { PublicLayout } from "@/components/layout/public-layout";
 import {
   usePublished,
+  usePublishedHomepageSections,
   featuredFirst,
   formatDate,
 } from "@/components/public/home/home-data";
@@ -19,7 +20,10 @@ import { Reveal } from "@/components/public/home/reveal";
 import { SafeImage } from "@/components/public/home/safe-image";
 import { SectionHeading } from "@/components/public/home/section-heading";
 import { Button } from "@/components/ui/button";
-import { resolveMedia } from "@/lib/media";
+import {
+  resolveMedia,
+  safeExternalUrl,
+} from "@/lib/media";
 import { SITE } from "@/constants/site";
 import type { ContentRecord } from "@/types";
 
@@ -56,13 +60,16 @@ export const Route = createFileRoute("/")({
  *
  * This file owns the public homepage experience.
  *
- * It intentionally consumes existing published content rather
- * than creating fake statistics, fake activity, fake AI data,
- * fake audience information, or placeholder engagement numbers.
+ * The homepage consumes real published content only.
  *
- * Future TJC OS phases plug into the systems surrounding this
- * public shell rather than requiring the homepage foundation
- * to be rebuilt.
+ * Homepage Builder records now enter the public experience
+ * through the same publication boundary as every other CMS
+ * resource:
+ *
+ *   status = published
+ *   AND deleted_at IS NULL
+ *
+ * Database RLS remains the final public security boundary.
  */
 
 const PUBLIC_PILLARS = [
@@ -114,7 +121,12 @@ type MediaKind = "cover" | "thumbnail" | "image";
 
 function imageFor(item: ContentRecord, key: MediaKind) {
   const metadata = item.metadata ?? {};
-  return resolveMedia(metadata, key, item.thumbnail_url);
+
+  return resolveMedia(
+    metadata,
+    key,
+    item.thumbnail_url,
+  );
 }
 
 function ContentFallback() {
@@ -130,7 +142,11 @@ function ContentFallback() {
   );
 }
 
-function ContentMeta({ item }: { item: ContentRecord }) {
+function ContentMeta({
+  item,
+}: {
+  item: ContentRecord;
+}) {
   const date = formatDate(item.published_at);
 
   if (!item.category && !date) {
@@ -213,6 +229,155 @@ function EditorialCard({
         </div>
       </article>
     </Link>
+  );
+}
+
+/* ============================================================
+   HOMEPAGE BUILDER → PUBLIC RENDERING
+   ============================================================ */
+
+function HomepageBuilderSection({
+  section,
+}: {
+  section: ContentRecord;
+}) {
+  const metadata = section.metadata ?? {};
+
+  const image = resolveMedia(
+    metadata,
+    "section_image",
+    section.thumbnail_url,
+  );
+
+  const sectionUrl = safeExternalUrl(
+    metadata.section_url,
+  );
+
+  const sectionType =
+    typeof section.category === "string" &&
+    section.category.trim()
+      ? section.category
+      : "Featured section";
+
+  const content = (
+    <article className="surface-glass group relative overflow-hidden rounded-2xl border border-border">
+      {image && (
+        <div className="image-editorial relative aspect-[16/7] overflow-hidden">
+          <SafeImage
+            src={image}
+            alt={section.title ?? "TJC homepage section"}
+            className="size-full object-cover"
+            fallback={<ContentFallback />}
+          />
+
+          <div className="image-overlay absolute inset-0" />
+        </div>
+      )}
+
+      <div className="relative p-7 sm:p-9 lg:p-11">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-gold">
+            {sectionType}
+          </p>
+
+          {Boolean(metadata.featured) && (
+            <>
+              <span
+                aria-hidden
+                className="text-muted-foreground/50"
+              >
+                ·
+              </span>
+
+              <span className="text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                Featured
+              </span>
+            </>
+          )}
+        </div>
+
+        <h2 className="mt-4 max-w-4xl font-display text-3xl font-semibold leading-tight md:text-5xl">
+          {section.title ?? "Untitled section"}
+        </h2>
+
+        {section.description && (
+          <p className="mt-5 max-w-3xl text-base leading-relaxed text-muted-foreground">
+            {section.description}
+          </p>
+        )}
+
+        {section.body && (
+          <div className="mt-5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-foreground/75">
+            {section.body}
+          </div>
+        )}
+
+        {sectionUrl && (
+          <span className="mt-7 inline-flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-gold">
+            Explore section
+            <ArrowRight
+              className="size-3.5 transition-transform duration-300 group-hover:translate-x-1"
+              aria-hidden
+            />
+          </span>
+        )}
+      </div>
+    </article>
+  );
+
+  if (!sectionUrl) {
+    return content;
+  }
+
+  return (
+    <a
+      href={sectionUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      {content}
+    </a>
+  );
+}
+
+function HomepageBuilderSections({
+  sections,
+}: {
+  sections: ContentRecord[];
+}) {
+  if (sections.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      id="homepage-builder"
+      className="section-y border-t border-border"
+    >
+      <div className="container-tjc">
+        <Reveal>
+          <SectionHeading
+            eyebrow="From the TJC HQ"
+            title="Built for the moment"
+            intro="A curated selection published directly through the TJC homepage system."
+          />
+        </Reveal>
+
+        <div className="mt-10 space-y-5">
+          {sections.map((section, index) => (
+            <Reveal
+              key={section.id}
+              delay={index * 70}
+            >
+              <HomepageBuilderSection
+                section={section}
+              />
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -304,9 +469,13 @@ function CurrentWorld({
             >
               <article className="hero-cinematic relative h-full min-h-[30rem] overflow-hidden rounded-2xl border border-border">
                 <SafeImage
-                  src={imageFor(lead.item, lead.kind)}
+                  src={imageFor(
+                    lead.item,
+                    lead.kind,
+                  )}
                   alt={
-                    lead.item.title ?? "Featured TJC work"
+                    lead.item.title ??
+                    "Featured TJC work"
                   }
                   className="hero-backdrop-image absolute inset-0 size-full object-cover"
                   fallback={<ContentFallback />}
@@ -320,7 +489,8 @@ function CurrentWorld({
                   </p>
 
                   <h3 className="mt-3 max-w-3xl font-display text-3xl font-semibold leading-[1.05] sm:text-5xl">
-                    {lead.item.title ?? "Untitled"}
+                    {lead.item.title ??
+                      "Untitled"}
                   </h3>
 
                   {lead.item.description && (
@@ -342,18 +512,20 @@ function CurrentWorld({
           </Reveal>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
-            {featured.slice(1, 3).map((entry, index) => (
-              <Reveal
-                key={entry.item.id}
-                delay={(index + 1) * 80}
-              >
-                <EditorialCard
-                  item={entry.item}
-                  to={entry.to}
-                  kind={entry.kind}
-                />
-              </Reveal>
-            ))}
+            {featured
+              .slice(1, 3)
+              .map((entry, index) => (
+                <Reveal
+                  key={entry.item.id}
+                  delay={(index + 1) * 80}
+                >
+                  <EditorialCard
+                    item={entry.item}
+                    to={entry.to}
+                    kind={entry.kind}
+                  />
+                </Reveal>
+              ))}
           </div>
         </div>
       </div>
@@ -374,50 +546,52 @@ function ExploreUniverse() {
         </Reveal>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {PUBLIC_PILLARS.map((pillar, index) => (
-            <Reveal
-              key={pillar.to}
-              delay={index * 60}
-            >
-              <Link
-                to={pillar.to}
-                className="card-lift surface-panel group relative block h-full overflow-hidden rounded-2xl p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-7"
+          {PUBLIC_PILLARS.map(
+            (pillar, index) => (
+              <Reveal
+                key={pillar.to}
+                delay={index * 60}
               >
-                <span
-                  className="absolute right-5 top-5 font-display text-4xl text-foreground/[0.04]"
-                  aria-hidden
+                <Link
+                  to={pillar.to}
+                  className="card-lift surface-panel group relative block h-full overflow-hidden rounded-2xl p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-7"
                 >
-                  {pillar.number}
-                </span>
+                  <span
+                    className="absolute right-5 top-5 font-display text-4xl text-foreground/[0.04]"
+                    aria-hidden
+                  >
+                    {pillar.number}
+                  </span>
 
-                <pillar.icon
-                  className="size-6 text-gold transition-transform duration-500 group-hover:scale-110"
-                  aria-hidden
-                />
-
-                <h3 className="mt-8 font-display text-lg font-semibold">
-                  {pillar.label}
-                </h3>
-
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {pillar.copy}
-                </p>
-
-                <span className="mt-6 inline-flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-gold">
-                  Open
-                  <ArrowRight
-                    className="size-3 transition-transform duration-300 group-hover:translate-x-1"
+                  <pillar.icon
+                    className="size-6 text-gold transition-transform duration-500 group-hover:scale-110"
                     aria-hidden
                   />
-                </span>
-              </Link>
-            </Reveal>
-          ))}
+
+                  <h3 className="mt-8 font-display text-lg font-semibold">
+                    {pillar.label}
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {pillar.copy}
+                  </p>
+
+                  <span className="mt-6 inline-flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-gold">
+                    Open
+                    <ArrowRight
+                      className="size-3 transition-transform duration-300 group-hover:translate-x-1"
+                      aria-hidden
+                    />
+                  </span>
+                </Link>
+              </Reveal>
+            ),
+          )}
         </div>
       </div>
     </section>
   );
-  }
+}
 
 function ContentSection({
   items,
@@ -454,19 +628,21 @@ function ContentSection({
         </Reveal>
 
         <div className="editorial-grid mt-10">
-          {items.slice(0, 3).map((item, index) => (
-            <Reveal
-              key={item.id}
-              delay={index * 70}
-              className="h-full"
-            >
-              <EditorialCard
-                item={item}
-                to={to}
-                kind={kind}
-              />
-            </Reveal>
-          ))}
+          {items.slice(0, 3).map(
+            (item, index) => (
+              <Reveal
+                key={item.id}
+                delay={index * 70}
+                className="h-full"
+              >
+                <EditorialCard
+                  item={item}
+                  to={to}
+                  kind={kind}
+                />
+              </Reveal>
+            ),
+          )}
         </div>
       </div>
     </section>
@@ -608,15 +784,22 @@ function HomePage() {
   /*
    * Public content feeds.
    *
-   * These consume the existing publishing system.
-   * Future dashboard phases can update the underlying
-   * content and systems without replacing this homepage.
+   * Every feed uses the same published-content contract.
    */
   const music = usePublished("songs", 6);
   const videos = usePublished("videos", 6);
   const gallery = usePublished("gallery", 6);
   const projects = usePublished("projects", 6);
   const posts = usePublished("posts", 6);
+
+  /*
+   * Homepage Builder feed.
+   *
+   * Only published homepage_sections records can reach
+   * this public component.
+   */
+  const homepageSections =
+    usePublishedHomepageSections(30);
 
   return (
     <PublicLayout>
@@ -724,12 +907,19 @@ function HomePage() {
       />
 
       {/* =====================================================
-          03 — PUBLIC CREATIVE UNIVERSE
+          03 — HOMEPAGE BUILDER
+          ===================================================== */}
+      <HomepageBuilderSections
+        sections={homepageSections.sections}
+      />
+
+      {/* =====================================================
+          04 — PUBLIC CREATIVE UNIVERSE
           ===================================================== */}
       <ExploreUniverse />
 
       {/* =====================================================
-          04 — PUBLISHED CONTENT
+          05 — PUBLISHED CONTENT
           ===================================================== */}
       <ContentSection
         items={music.items}
@@ -779,14 +969,14 @@ function HomePage() {
       />
 
       {/* =====================================================
-          05 — STORY / BIOGRAPHY
+          06 — STORY / BIOGRAPHY
           ===================================================== */}
       <StorySection />
 
       {/* =====================================================
-          06 — CONTACT / COLLABORATION
+          07 — CONTACT / COLLABORATION
           ===================================================== */}
       <FinalGateway />
     </PublicLayout>
   );
-                  }
+}
