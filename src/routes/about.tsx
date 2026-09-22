@@ -1,7 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import { EmptyState } from "@/components/layout/empty-state";
 import { PublicLayout } from "@/components/layout/public-layout";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TJC_IDENTITY, TJC_PERSON_ID, TJC_PROFILE_ID } from "@/constants/identity";
+import { resolveMedia } from "@/lib/media";
+import { services } from "@/services";
+import type { ContentRecord } from "@/types";
 
 const ABOUT_DESCRIPTION =
   "TJC (Thulani Joseph) is a South African Emotional Storyteller, Emotional Actor and Emotional Rapper creating music, acting and visual stories inspired by real-life experiences, emotions and personal growth.";
@@ -43,39 +49,81 @@ export const Route = createFileRoute("/about")({
 });
 
 function AboutPage() {
+  const biography = useQuery({
+    queryKey: ["public", "biography"],
+    queryFn: () =>
+      services().repository<ContentRecord>("biography").list({
+        status: "published",
+        perPage: 1,
+        orderBy: "updated_at",
+      }),
+    staleTime: 30_000,
+  });
+
+  const record = biography.data?.data?.items[0] ?? null;
+  const metadata = record?.metadata ?? {};
+  const profileImage = record
+    ? resolveMedia(metadata, "profile_image", record.thumbnail_url)
+    : null;
+  const tags = typeof metadata.tags === "string" ? metadata.tags : null;
+  const title = record?.title || "TJC — Thulani Joseph";
+  const description = record?.description || ABOUT_DESCRIPTION;
+
   return (
     <PublicLayout>
       <header className="relative overflow-hidden border-b border-border">
         <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: "var(--gradient-halo)" }} />
         <div className="container-tjc relative section-y">
-          <p className="text-xs uppercase tracking-[0.32em] text-gold">About TJC</p>
-          <h1 className="mt-5 max-w-4xl font-display text-4xl font-semibold leading-[1.05] md:text-6xl">
-            TJC — Thulani Joseph
-          </h1>
-          <p className="mt-6 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            TJC (Thulani Joseph) is a South African Emotional Storyteller, Emotional Actor and Emotional Rapper.
-            He transforms real-life experiences, emotions, struggles, dreams and personal growth into stories through
-            music, acting and visual creativity.
-          </p>
+          <p className="text-xs uppercase tracking-[0.32em] text-gold">{record?.category || "About TJC"}</p>
+          {biography.isPending ? (
+            <div className="mt-5 space-y-4">
+              <Skeleton className="h-14 w-3/4" />
+              <Skeleton className="h-6 w-full max-w-3xl" />
+            </div>
+          ) : (
+            <>
+              <h1 className="mt-5 max-w-4xl font-display text-4xl font-semibold leading-[1.05] md:text-6xl">{title}</h1>
+              <p className="mt-6 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">{description}</p>
+            </>
+          )}
           <p className="mt-5 text-sm uppercase tracking-[0.18em] text-gold">{TJC_IDENTITY.tagline}</p>
+          {profileImage && (
+            <img src={profileImage} alt={record?.title || TJC_IDENTITY.name} className="mt-8 max-h-96 rounded-2xl object-cover" />
+          )}
         </div>
       </header>
 
       <main className="container-tjc section-y">
         <div className="mx-auto max-w-3xl space-y-14">
+          {biography.error && (
+            <p role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm text-destructive">
+              Biography content could not be loaded. Showing the available public identity content.
+            </p>
+          )}
+          {!biography.isPending && !biography.error && !record && (
+            <EmptyState title="No published biography yet" body="The public biography will appear here once it is published from TJC OS." />
+          )}
+
           <section aria-labelledby="who-is-tjc">
             <h2 id="who-is-tjc" className="font-display text-3xl font-semibold md:text-4xl">Who Is TJC?</h2>
             <div className="mt-6 space-y-5 text-base leading-8 text-muted-foreground">
-              <p>
-                TJC and Thulani Joseph are the same person. At the heart of TJC’s journey is real-life storytelling:
-                telling stories that come from genuine experiences, emotions, lessons, challenges, healing, ambition
-                and the transformation that comes with becoming who you are meant to be.
-              </p>
-              <p>
-                This is more than an artist identity. It is an evolving story of self-growth, struggles, dreams,
-                ambition, healing, transformation and becoming.
-              </p>
+              {record?.body ? (
+                <p className="whitespace-pre-line">{record.body}</p>
+              ) : (
+                <>
+                  <p>
+                    TJC and Thulani Joseph are the same person. At the heart of TJC’s journey is real-life storytelling:
+                    telling stories that come from genuine experiences, emotions, lessons, challenges, healing, ambition
+                    and the transformation that comes with becoming who you are meant to be.
+                  </p>
+                  <p>
+                    This is more than an artist identity. It is an evolving story of self-growth, struggles, dreams,
+                    ambition, healing, transformation and becoming.
+                  </p>
+                </>
+              )}
             </div>
+            {tags && <p className="mt-6 text-xs uppercase tracking-[0.2em] text-gold">{tags}</p>}
           </section>
 
           <section aria-labelledby="emotional-storytelling">
