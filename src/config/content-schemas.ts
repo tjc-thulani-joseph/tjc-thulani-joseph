@@ -23,7 +23,7 @@ export interface FieldDef {
 }
 
 export interface ContentSchema {
-  resource: "posts" | "songs" | "videos" | "gallery" | "biography";
+  resource: "posts" | "songs" | "videos" | "gallery" | "biography" | "projects";
   label: string;
   singular: string;
   /** Media field whose preview drives the card in the manager list. */
@@ -108,6 +108,70 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
       { key: "tags", label: "Tags", kind: "text", meta: true, placeholder: "storytelling, music, acting" },
       { key: "profile_image", label: "Profile image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
       { key: "profile_image_url", label: "External profile image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/profile.jpg" },
+    ],
+  },
+  projects: {
+    resource: "projects",
+    label: "Projects",
+    singular: "Project",
+    previewField: "project_image",
+    fields: [
+      {
+        key: "title",
+        label: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "Project title",
+      },
+      {
+        key: "description",
+        label: "Description",
+        kind: "textarea",
+        required: true,
+        placeholder: "Short project description",
+      },
+      {
+        key: "body",
+        label: "Project details",
+        kind: "textarea",
+        placeholder: "Detailed project information",
+      },
+      {
+        key: "category",
+        label: "Category",
+        kind: "text",
+        placeholder: "Film, music, business, creative project",
+      },
+      {
+        key: "status",
+        label: "Project status",
+        kind: "text",
+        meta: true,
+        placeholder: "Active, completed, upcoming",
+      },
+      {
+        key: "project_image",
+        label: "Project image",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "thumbnail_url",
+      },
+      {
+        key: "project_image_url",
+        label: "External project image URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/project.jpg",
+      },
+      {
+        key: "project_url",
+        label: "Project URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/project",
+      },
     ],
   },
 };
