@@ -1,6 +1,16 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Archive,
+  Eye,
+  EyeOff,
+  Lock,
+  Pencil,
+  Plus,
+  Search,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +35,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { services } from "@/services";
 import type { ContentSchema, FieldDef } from "@/config/content-schemas";
 import {
@@ -34,10 +51,64 @@ import {
   type MediaRef,
 } from "@/lib/media";
 import { MediaField } from "@/components/dashboard/media-field";
-import type { ContentRecord } from "@/types";
+import type { ContentRecord, ContentStatus } from "@/types";
 
 type Draft = Record<string, unknown>;
 type Errors = Record<string, string>;
+
+const CONTENT_STATUSES: Array<{
+  value: ContentStatus;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "draft",
+    label: "Draft",
+    description: "Saved privately while you continue working.",
+  },
+  {
+    value: "private",
+    label: "Private",
+    description: "Saved in TJC OS but hidden from the public site.",
+  },
+  {
+    value: "scheduled",
+    label: "Scheduled",
+    description: "Prepared for a future publishing time.",
+  },
+  {
+    value: "published",
+    label: "Published",
+    description: "Eligible to appear on the public site.",
+  },
+  {
+    value: "archived",
+    label: "Archived",
+    description: "Kept for records but hidden from the public site.",
+  },
+];
+
+function statusLabel(status: ContentStatus) {
+  return (
+    CONTENT_STATUSES.find((item) => item.value === status)?.label ??
+    status
+  );
+}
+
+function statusDescription(status: ContentStatus) {
+  return (
+    CONTENT_STATUSES.find((item) => item.value === status)?.description ??
+    ""
+  );
+}
+
+function statusIcon(status: ContentStatus) {
+  if (status === "published") return Eye;
+  if (status === "private") return Lock;
+  if (status === "scheduled") return Send;
+  if (status === "archived") return Archive;
+  return Pencil;
+}
 
 function slugify(value: string) {
   return (
@@ -178,6 +249,36 @@ function toPayload(
   return row as Partial<ContentRecord>;
 }
 
+function isoToDateTimeLocal(value: string | null) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const pad = (number: number) => String(number).padStart(2, "0");
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-") + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function dateTimeLocalToIso(value: string) {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
+}
+
 export function ContentManager({
   schema,
   description,
@@ -197,6 +298,8 @@ export function ContentManager({
   const [editing, setEditing] = useState<{
     record: ContentRecord | null;
     draft: Draft;
+    status: ContentStatus;
+    scheduledFor: string;
   } | null>(null);
 
   const [errors, setErrors] = useState<Errors>({});
@@ -207,8 +310,10 @@ export function ContentManager({
       queryKey: ["content", schema.resource],
     });
 
+    // The public homepage data layer uses ["home", resource, limit].
+    // Invalidating the prefix refreshes every public query for this resource.
     void queryClient.invalidateQueries({
-      queryKey: ["public", schema.resource],
+      queryKey: ["home", schema.resource],
     });
   };
 
@@ -225,11 +330,13 @@ export function ContentManager({
     mutationFn: async ({
       draft,
       record,
-      publish,
+      status,
+      scheduledFor,
     }: {
       draft: Draft;
       record: ContentRecord | null;
-      publish: boolean;
+      status: ContentStatus;
+      scheduledFor: string;
     }) => {
       const nextErrors = validate(schema, draft);
 
@@ -238,17 +345,46 @@ export function ContentManager({
         throw new Error(Object.values(nextErrors).join(" "));
       }
 
+      if (status === "scheduled" && !scheduledFor) {
+        throw new Error(
+          "Choose a future date and time for scheduled publishing.",
+        );
+      }
+
+      const scheduledIso = dateTimeLocalToIso(scheduledFor);
+
+      if (status === "scheduled") {
+        if (!scheduledIso) {
+          throw new Error(
+            "The scheduled publishing date and time is invalid.",
+          );
+        }
+
+        if (new Date(scheduledIso).getTime() <= Date.now()) {
+          throw new Error(
+            "Scheduled publishing must be set to a future date and time.",
+          );
+        }
+      }
+
       const payload = toPayload(
         schema,
         draft,
         record ?? undefined,
       ) as Record<string, unknown>;
 
-      payload["status"] = publish ? "published" : "draft";
+      payload["status"] = status;
 
-      payload["published_at"] = publish
-        ? new Date().toISOString()
-        : null;
+      if (status === "published") {
+        payload["published_at"] =
+          record?.status === "published" && record.published_at
+            ? record.published_at
+            : new Date().toISOString();
+      } else if (status === "scheduled") {
+        payload["published_at"] = scheduledIso;
+      } else {
+        payload["published_at"] = null;
+      }
 
       const result = record
         ? await repo.update(
@@ -268,9 +404,10 @@ export function ContentManager({
 
     onSuccess: (_data, variables) => {
       toast.success(
-        variables.publish
-          ? `${schema.singular} published`
-          : `${schema.singular} saved as draft`,
+        `${schema.singular} ${statusLabel(variables.status).toLowerCase()}`,
+        {
+          description: statusDescription(variables.status),
+        },
       );
 
       setEditing(null);
@@ -284,7 +421,7 @@ export function ContentManager({
       }),
   });
 
-  const togglePublish = useMutation({
+  const quickPublish = useMutation({
     mutationFn: async (record: ContentRecord) => {
       const publishing = record.status !== "published";
 
@@ -293,7 +430,7 @@ export function ContentManager({
         {
           status: publishing ? "published" : "draft",
           published_at: publishing
-            ? new Date().toISOString()
+            ? record.published_at ?? new Date().toISOString()
             : null,
         } as Partial<ContentRecord>,
       );
@@ -367,6 +504,27 @@ export function ContentManager({
               ...prev.draft,
               [key]: value,
             },
+          }
+        : prev,
+    );
+  };
+
+  const setStatus = (status: ContentStatus) => {
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.status;
+      return next;
+    });
+
+    setEditing((prev) =>
+      prev
+        ? {
+            ...prev,
+            status,
+            scheduledFor:
+              status === "scheduled"
+                ? prev.scheduledFor
+                : "",
           }
         : prev,
     );
@@ -508,6 +666,8 @@ export function ContentManager({
             setEditing({
               record: null,
               draft: emptyDraft(schema),
+              status: "draft",
+              scheduledFor: "",
             });
           }}
         >
@@ -548,8 +708,7 @@ export function ContentManager({
         <p className="mt-6 text-sm text-muted-foreground">
           Nothing here yet. Create a{" "}
           {schema.singular.toLowerCase()} and
-          publish it to see it on the public
-          site.
+          choose its publishing status.
         </p>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -566,6 +725,10 @@ export function ContentManager({
 
             const published =
               item.status === "published";
+
+            const StatusIcon = statusIcon(
+              item.status,
+            );
 
             return (
               <Card
@@ -586,8 +749,12 @@ export function ContentManager({
                       {item.title ?? "Untitled"}
                     </h2>
 
-                    <span className="text-[10px] uppercase tracking-[0.18em] text-gold/80">
-                      {item.status}
+                    <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-gold/80">
+                      <StatusIcon
+                        className="size-3"
+                        aria-hidden
+                      />
+                      {statusLabel(item.status)}
                     </span>
                   </div>
 
@@ -597,18 +764,37 @@ export function ContentManager({
                     </p>
                   )}
 
+                  {item.status === "scheduled" &&
+                    item.published_at && (
+                      <p className="text-xs text-muted-foreground">
+                        Scheduled for{" "}
+                        {new Date(
+                          item.published_at,
+                        ).toLocaleString()}
+                      </p>
+                    )}
+
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => {
                         setErrors({});
+
                         setEditing({
                           record: item,
                           draft: draftFromRecord(
                             schema,
                             item,
                           ),
+                          status: item.status,
+                          scheduledFor:
+                            item.status ===
+                            "scheduled"
+                              ? isoToDateTimeLocal(
+                                  item.published_at,
+                                )
+                              : "",
                         });
                       }}
                     >
@@ -623,10 +809,10 @@ export function ContentManager({
                       size="sm"
                       variant="ghost"
                       disabled={
-                        togglePublish.isPending
+                        quickPublish.isPending
                       }
                       onClick={() =>
-                        togglePublish.mutate(item)
+                        quickPublish.mutate(item)
                       }
                     >
                       {published ? (
@@ -682,13 +868,109 @@ export function ContentManager({
           </DialogHeader>
 
           {editing && (
-            <div className="space-y-5 py-2">
+            <div className="space-y-6 py-2">
               {schema.fields.map((field) =>
                 renderField(
                   field,
                   editing.draft,
                 ),
               )}
+
+              <div className="border-t border-border pt-5">
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Publishing status
+                  </p>
+
+                  <Select
+                    value={editing.status}
+                    onValueChange={(value) =>
+                      setStatus(
+                        value as ContentStatus,
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose status" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {CONTENT_STATUSES.map(
+                        (status) => (
+                          <SelectItem
+                            key={status.value}
+                            value={status.value}
+                          >
+                            {status.label}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {statusDescription(
+                      editing.status,
+                    )}
+                  </p>
+                </div>
+
+                {editing.status ===
+                  "scheduled" && (
+                  <div className="mt-5 space-y-2">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                      Publish date & time
+                    </p>
+
+                    <Input
+                      type="datetime-local"
+                      value={
+                        editing.scheduledFor
+                      }
+                      min={new Date()
+                        .toISOString()
+                        .slice(0, 16)}
+                      onChange={(event) => {
+                        setErrors(
+                          (current) => {
+                            const next = {
+                              ...current,
+                            };
+                            delete next.scheduledFor;
+                            return next;
+                          },
+                        );
+
+                        setEditing(
+                          (current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  scheduledFor:
+                                    event.target
+                                      .value,
+                                }
+                              : current,
+                        );
+                      }}
+                    />
+
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      This record remains hidden from
+                      the public site while its status is
+                      scheduled. The scheduled timestamp
+                      is stored in{" "}
+                      <code>published_at</code>.
+                    </p>
+
+                    {errors.scheduledFor && (
+                      <p className="text-xs text-destructive">
+                        {errors.scheduledFor}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -703,32 +985,23 @@ export function ContentManager({
             </Button>
 
             <Button
-              variant="outline"
               disabled={save.isPending}
               onClick={() =>
                 editing &&
                 save.mutate({
                   draft: editing.draft,
                   record: editing.record,
-                  publish: false,
+                  status: editing.status,
+                  scheduledFor:
+                    editing.scheduledFor,
                 })
               }
             >
-              Save draft
-            </Button>
-
-            <Button
-              disabled={save.isPending}
-              onClick={() =>
-                editing &&
-                save.mutate({
-                  draft: editing.draft,
-                  record: editing.record,
-                  publish: true,
-                })
-              }
-            >
-              Publish
+              {save.isPending
+                ? "Saving..."
+                : `Save ${statusLabel(
+                    editing?.status ?? "draft",
+                  ).toLowerCase()}`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -777,4 +1050,4 @@ export function ContentManager({
       </AlertDialog>
     </div>
   );
-}
+    }
