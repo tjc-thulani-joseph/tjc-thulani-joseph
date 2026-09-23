@@ -181,7 +181,34 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         meta: true,
         placeholder: "https://example.com/song.mp3",
       },
-    ],
+    {
+  key: "spotify_url",
+  label: "Spotify",
+  kind: "url",
+  meta: true,
+  placeholder: "https://open.spotify.com/track/...",
+},
+{
+  key: "apple_music_url",
+  label: "Apple Music",
+  kind: "url",
+  meta: true,
+  placeholder: "https://music.apple.com/...",
+},
+{
+  key: "soundcloud_url",
+  label: "SoundCloud",
+  kind: "url",
+  meta: true,
+  placeholder: "https://soundcloud.com/...",
+},
+{
+  key: "youtube_url",
+  label: "YouTube",
+  kind: "url",
+  meta: true,
+  placeholder: "https://youtube.com/watch?v=...",
+},
   },
 
   videos: {
@@ -247,9 +274,21 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         meta: true,
         placeholder: "https://example.com/video.mp4",
       },
-    ],
-  },
-
+    {
+  key: "youtube_url",
+  label: "YouTube",
+  kind: "url",
+  meta: true,
+  placeholder: "https://youtube.com/watch?v=...",
+},
+{
+  key: "vimeo_url",
+  label: "Vimeo",
+  kind: "url",
+  meta: true,
+  placeholder: "https://vimeo.com/...",
+},
+      {
   gallery: {
     resource: "gallery",
     label: "Gallery Manager",
