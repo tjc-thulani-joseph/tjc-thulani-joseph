@@ -5,7 +5,13 @@
  * is stored in the record's `metadata` jsonb.
  */
 
-export type FieldKind = "text" | "textarea" | "date" | "boolean" | "media" | "url";
+export type FieldKind =
+  | "text"
+  | "textarea"
+  | "date"
+  | "boolean"
+  | "media"
+  | "url";
 
 export interface FieldDef {
   /** Key in the record (column) or in metadata when `meta` is true. */
@@ -23,7 +29,14 @@ export interface FieldDef {
 }
 
 export interface ContentSchema {
-  resource: "posts" | "songs" | "videos" | "gallery" | "biography" | "projects" | "homepage_sections";
+  resource:
+    | "posts"
+    | "songs"
+    | "videos"
+    | "gallery"
+    | "biography"
+    | "projects"
+    | "homepage_sections";
   label: string;
   singular: string;
   /** Media field whose preview drives the card in the manager list. */
@@ -38,78 +51,315 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
     singular: "Post",
     previewField: "featured_image",
     fields: [
-      { key: "title", label: "Title", kind: "text", required: true, placeholder: "Post title" },
-      { key: "description", label: "Excerpt", kind: "textarea", required: true, placeholder: "Short introduction shown on the public blog" },
-      { key: "body", label: "Content", kind: "textarea", required: true, placeholder: "Write the post content" },
-      { key: "category", label: "Category", kind: "text", placeholder: "Journal, announcement, or reflection" },
-      { key: "tags", label: "Tags", kind: "text", meta: true, placeholder: "creative, music, filmmaking" },
-      { key: "featured_image", label: "Featured image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
-      { key: "featured_image_url", label: "External featured image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/image.jpg" },
+      {
+        key: "title",
+        label: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "Post title",
+      },
+      {
+        key: "description",
+        label: "Excerpt",
+        kind: "textarea",
+        required: true,
+        placeholder: "Short introduction shown on the public blog",
+      },
+      {
+        key: "body",
+        label: "Content",
+        kind: "textarea",
+        required: true,
+        placeholder: "Write the post content",
+      },
+      {
+        key: "category",
+        label: "Category",
+        kind: "text",
+        placeholder: "Journal, announcement, or reflection",
+      },
+      {
+        key: "tags",
+        label: "Tags",
+        kind: "text",
+        meta: true,
+        placeholder: "creative, music, filmmaking",
+      },
+      {
+        key: "featured_image",
+        label: "Featured image",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "thumbnail_url",
+      },
+      {
+        key: "featured_image_url",
+        label: "External featured image URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/image.jpg",
+      },
     ],
   },
+
   songs: {
     resource: "songs",
     label: "Music Manager",
     singular: "Song",
     previewField: "cover",
     fields: [
-      { key: "title", label: "Title", kind: "text", required: true, placeholder: "Song title" },
-      { key: "artist", label: "Artist", kind: "text", meta: true, placeholder: "Thulani Joseph" },
-      { key: "album", label: "Album", kind: "text", meta: true, placeholder: "Album name" },
-      { key: "category", label: "Genre", kind: "text", placeholder: "Afro soul" },
-      { key: "release_date", label: "Release date", kind: "date", meta: true },
-      { key: "description", label: "Description", kind: "textarea", placeholder: "Short description" },
-      { key: "cover", label: "Cover image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
-      { key: "cover_url", label: "External cover image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/cover.jpg" },
-      { key: "audio", label: "Audio file", kind: "media", meta: true, bucket: "music", accept: "audio/*", mirrorTo: "url" },
-      { key: "audio_url", label: "External audio URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/song.mp3" },
+      {
+        key: "title",
+        label: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "Song title",
+      },
+      {
+        key: "artist",
+        label: "Artist",
+        kind: "text",
+        meta: true,
+        placeholder: "Thulani Joseph",
+      },
+      {
+        key: "album",
+        label: "Album",
+        kind: "text",
+        meta: true,
+        placeholder: "Album name",
+      },
+      {
+        key: "category",
+        label: "Genre",
+        kind: "text",
+        placeholder: "Afro soul",
+      },
+      {
+        key: "release_date",
+        label: "Release date",
+        kind: "date",
+        meta: true,
+      },
+      {
+        key: "description",
+        label: "Description",
+        kind: "textarea",
+        placeholder: "Short description",
+      },
+      {
+        key: "cover",
+        label: "Cover image",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "thumbnail_url",
+      },
+      {
+        key: "cover_url",
+        label: "External cover image URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/cover.jpg",
+      },
+      {
+        key: "audio",
+        label: "Audio file",
+        kind: "media",
+        meta: true,
+        bucket: "music",
+        accept: "audio/*",
+        mirrorTo: "url",
+      },
+      {
+        key: "audio_url",
+        label: "External audio URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/song.mp3",
+      },
     ],
   },
+
   videos: {
     resource: "videos",
     label: "Video Manager",
     singular: "Video",
     previewField: "thumbnail",
     fields: [
-      { key: "title", label: "Title", kind: "text", required: true, placeholder: "Video title" },
-      { key: "category", label: "Category", kind: "text", placeholder: "Live performance" },
-      { key: "release_date", label: "Release date", kind: "date", meta: true },
-      { key: "description", label: "Description", kind: "textarea", placeholder: "Short description" },
-      { key: "thumbnail", label: "Thumbnail", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
-      { key: "thumbnail_url", label: "External thumbnail URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/thumbnail.jpg" },
-      { key: "video", label: "Video file", kind: "media", meta: true, bucket: "videos", accept: "video/*", mirrorTo: "url" },
-      { key: "video_url", label: "External video URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/video.mp4" },
+      {
+        key: "title",
+        label: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "Video title",
+      },
+      {
+        key: "category",
+        label: "Category",
+        kind: "text",
+        placeholder: "Live performance",
+      },
+      {
+        key: "release_date",
+        label: "Release date",
+        kind: "date",
+        meta: true,
+      },
+      {
+        key: "description",
+        label: "Description",
+        kind: "textarea",
+        placeholder: "Short description",
+      },
+      {
+        key: "thumbnail",
+        label: "Thumbnail",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "thumbnail_url",
+      },
+      {
+        key: "thumbnail_url",
+        label: "External thumbnail URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/thumbnail.jpg",
+      },
+      {
+        key: "video",
+        label: "Video file",
+        kind: "media",
+        meta: true,
+        bucket: "videos",
+        accept: "video/*",
+        mirrorTo: "url",
+      },
+      {
+        key: "video_url",
+        label: "External video URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/video.mp4",
+      },
     ],
   },
+
   gallery: {
     resource: "gallery",
     label: "Gallery Manager",
     singular: "Photograph",
     previewField: "image",
     fields: [
-      { key: "title", label: "Title", kind: "text", required: true, placeholder: "Photograph title" },
-      { key: "category", label: "Album / category", kind: "text", placeholder: "Stage" },
-      { key: "description", label: "Caption", kind: "textarea", placeholder: "Caption shown on the public gallery" },
-      { key: "featured", label: "Featured", kind: "boolean", meta: true },
-      { key: "image", label: "Image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "url", required: true },
-      { key: "image_url", label: "External image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/image.jpg" },
+      {
+        key: "title",
+        label: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "Photograph title",
+      },
+      {
+        key: "category",
+        label: "Album / category",
+        kind: "text",
+        placeholder: "Stage",
+      },
+      {
+        key: "description",
+        label: "Caption",
+        kind: "textarea",
+        placeholder: "Caption shown on the public gallery",
+      },
+      {
+        key: "featured",
+        label: "Featured",
+        kind: "boolean",
+        meta: true,
+      },
+      {
+        key: "image",
+        label: "Image",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "url",
+        required: true,
+      },
+      {
+        key: "image_url",
+        label: "External image URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/image.jpg",
+      },
     ],
   },
+
   biography: {
     resource: "biography",
     label: "Biography",
     singular: "Biography",
     previewField: "profile_image",
     fields: [
-      { key: "title", label: "Title", kind: "text", required: true, placeholder: "About TJC" },
-      { key: "description", label: "Introduction", kind: "textarea", required: true, placeholder: "Short biography introduction" },
-      { key: "body", label: "Biography", kind: "textarea", required: true, placeholder: "Full biography" },
-      { key: "category", label: "Category", kind: "text", placeholder: "Personal brand" },
-      { key: "tags", label: "Tags", kind: "text", meta: true, placeholder: "storytelling, music, acting" },
-      { key: "profile_image", label: "Profile image", kind: "media", meta: true, bucket: "images", accept: "image/*", mirrorTo: "thumbnail_url" },
-      { key: "profile_image_url", label: "External profile image URL (optional)", kind: "url", meta: true, placeholder: "https://example.com/profile.jpg" },
+      {
+        key: "title",
+        label: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "About TJC",
+      },
+      {
+        key: "description",
+        label: "Introduction",
+        kind: "textarea",
+        required: true,
+        placeholder: "Short biography introduction",
+      },
+      {
+        key: "body",
+        label: "Biography",
+        kind: "textarea",
+        required: true,
+        placeholder: "Full biography",
+      },
+      {
+        key: "category",
+        label: "Category",
+        kind: "text",
+        placeholder: "Personal brand",
+      },
+      {
+        key: "tags",
+        label: "Tags",
+        kind: "text",
+        meta: true,
+        placeholder: "storytelling, music, acting",
+      },
+      {
+        key: "profile_image",
+        label: "Profile image",
+        kind: "media",
+        meta: true,
+        bucket: "images",
+        accept: "image/*",
+        mirrorTo: "thumbnail_url",
+      },
+      {
+        key: "profile_image_url",
+        label: "External profile image URL (optional)",
+        kind: "url",
+        meta: true,
+        placeholder: "https://example.com/profile.jpg",
+      },
     ],
   },
+
   projects: {
     resource: "projects",
     label: "Projects",
@@ -174,6 +424,7 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
       },
     ],
   },
+
   homepage_sections: {
     resource: "homepage_sections",
     label: "Homepage Builder",
@@ -204,6 +455,12 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         label: "Section type",
         kind: "text",
         placeholder: "Hero, featured, about, music, video, etc.",
+      },
+      {
+        key: "position",
+        label: "Display order",
+        kind: "text",
+        placeholder: "1, 2, 3, 4...",
       },
       {
         key: "section_image",
