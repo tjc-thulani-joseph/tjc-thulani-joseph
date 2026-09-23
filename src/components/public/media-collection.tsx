@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowUpRight,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { EmptyState } from "@/components/layout/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { services } from "@/services";
@@ -23,28 +21,19 @@ interface Props {
   emptyBody: string;
 }
 
-const MEDIA_KEY: Record<
-  Kind,
-  string
-> = {
+const MEDIA_KEY: Record<Kind, string> = {
   audio: "audio",
   video: "video",
   image: "image",
 };
 
-const COVER_KEY: Record<
-  Kind,
-  string
-> = {
+const COVER_KEY: Record<Kind, string> = {
   audio: "cover",
   video: "thumbnail",
   image: "image",
 };
 
-const PLATFORM_KEYS: Record<
-  Kind,
-  string[]
-> = {
+const PLATFORM_KEYS: Record<Kind, string[]> = {
   audio: [
     "spotify_url",
     "apple_music_url",
@@ -61,9 +50,11 @@ const PLATFORM_KEYS: Record<
 /**
  * Public renderer for media content.
  *
- * Published content comes from the same repository/RLS boundary as
- * the rest of the public site. External platform links are stored as
- * structured metadata and validated before rendering.
+ * Published content comes through the same repository and
+ * RLS visibility boundary as the rest of the public site.
+ *
+ * External platform URLs are stored as structured metadata
+ * and validated before being rendered as links.
  */
 export function MediaCollection({
   resource,
@@ -75,9 +66,7 @@ export function MediaCollection({
     queryKey: ["public", resource],
     queryFn: () =>
       services()
-        .repository<ContentRecord>(
-          resource,
-        )
+        .repository<ContentRecord>(resource)
         .list({
           status: "published",
           perPage: 48,
@@ -100,8 +89,7 @@ export function MediaCollection({
     );
   }
 
-  const items =
-    query.data?.data?.items ?? [];
+  const items = query.data?.data?.items ?? [];
 
   if (
     query.data?.error ||
@@ -120,8 +108,7 @@ export function MediaCollection({
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => {
           const metadata =
-            (item.metadata ??
-              {}) as Record<
+            (item.metadata ?? {}) as Record<
               string,
               unknown
             >;
@@ -139,14 +126,12 @@ export function MediaCollection({
           );
 
           const artist =
-            typeof metadata.artist ===
-            "string"
+            typeof metadata.artist === "string"
               ? metadata.artist
               : null;
 
           const album =
-            typeof metadata.album ===
-            "string"
+            typeof metadata.album === "string"
               ? metadata.album
               : null;
 
@@ -161,18 +146,17 @@ export function MediaCollection({
               key={item.id}
               className="surface-panel flex h-full flex-col overflow-hidden rounded-2xl"
             >
-              {kind === "image" &&
-                media && (
-                  <img
-                    src={media}
-                    alt={
-                      item.title ?? ""
-                    }
-                    loading="lazy"
-                    className="aspect-[4/5] w-full object-cover"
-                  />
-                )}
+              {/* Gallery image */}
+              {kind === "image" && media && (
+                <img
+                  src={media}
+                  alt={item.title ?? ""}
+                  loading="lazy"
+                  className="aspect-[4/5] w-full object-cover"
+                />
+              )}
 
+              {/* Video */}
               {kind === "video" &&
                 (media ? (
                   <video
@@ -180,35 +164,28 @@ export function MediaCollection({
                     preload="metadata"
                     className="aspect-video w-full bg-black object-cover"
                     {...(cover
-                      ? {
-                          poster: cover,
-                        }
+                      ? { poster: cover }
                       : {})}
                   >
-                    <source
-                      src={media}
-                    />
+                    <source src={media} />
                   </video>
                 ) : (
                   cover && (
                     <img
                       src={cover}
-                      alt={
-                        item.title ?? ""
-                      }
+                      alt={item.title ?? ""}
                       loading="lazy"
                       className="aspect-video w-full object-cover"
                     />
                   )
                 ))}
 
+              {/* Music artwork */}
               {kind === "audio" &&
                 cover && (
                   <img
                     src={cover}
-                    alt={
-                      item.title ?? ""
-                    }
+                    alt={item.title ?? ""}
                     loading="lazy"
                     className="aspect-square w-full object-cover"
                   />
@@ -222,17 +199,12 @@ export function MediaCollection({
                 )}
 
                 <h2 className="mt-3 font-display text-xl font-semibold">
-                  {item.title ??
-                    "Untitled"}
+                  {item.title ?? "Untitled"}
                 </h2>
 
-                {(artist ||
-                  album) && (
+                {(artist || album) && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {[
-                      artist,
-                      album,
-                    ]
+                    {[artist, album]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
@@ -244,8 +216,8 @@ export function MediaCollection({
                   </p>
                 )}
 
-                {kind ===
-                  "audio" &&
+                {/* Native audio player */}
+                {kind === "audio" &&
                   media && (
                     <audio
                       controls
@@ -255,8 +227,8 @@ export function MediaCollection({
                     />
                   )}
 
-                {platformLinks.length >
-                  0 && (
+                {/* External platforms */}
+                {platformLinks.length > 0 && (
                   <div className="mt-6 border-t border-border pt-5">
                     <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                       Also available on
@@ -273,6 +245,7 @@ export function MediaCollection({
                             className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-medium transition-colors hover:border-gold hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {link.label}
+
                             <ArrowUpRight
                               className="size-3"
                               aria-hidden
