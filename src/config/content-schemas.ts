@@ -30,13 +30,14 @@ export interface FieldDef {
 
 export interface ContentSchema {
   resource:
-    | "posts"
-    | "songs"
-    | "videos"
-    | "gallery"
-    | "biography"
-    | "projects"
-    | "homepage_sections";
+  | "posts"
+  | "songs"
+  | "videos"
+  | "gallery"
+  | "biography"
+  | "projects"
+  | "homepage_sections"
+  | "social_links";
   label: string;
   singular: string;
   /** Media field whose preview drives the card in the manager list. */
@@ -539,6 +540,54 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         label: "Featured",
         kind: "boolean",
         meta: true,
+      },
+    ],
+  },
+
+    social_links: {
+    resource: "social_links",
+    label: "Social Links HQ",
+    singular: "Social Link",
+    previewField: "thumbnail",
+    fields: [
+      {
+        key: "title",
+        label: "Platform",
+        kind: "text",
+        required: true,
+        placeholder: "Instagram, TikTok, YouTube, Spotify...",
+      },
+      {
+        key: "url",
+        label: "Official URL",
+        kind: "url",
+        required: true,
+        placeholder: "https://...",
+      },
+      {
+        key: "description",
+        label: "Description",
+        kind: "textarea",
+        placeholder: "Short description of this official platform.",
+      },
+      {
+        key: "category",
+        label: "Platform category",
+        kind: "text",
+        placeholder: "Social, music, professional, video...",
+      },
+      {
+        key: "position",
+        label: "Display order",
+        kind: "text",
+        placeholder: "1, 2, 3, 4...",
+      },
+      {
+        key: "handle",
+        label: "Handle / username",
+        kind: "text",
+        meta: true,
+        placeholder: "@yourusername",
       },
     ],
   },
