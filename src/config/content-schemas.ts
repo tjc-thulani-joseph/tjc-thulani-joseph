@@ -289,6 +289,13 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         meta: true,
         placeholder: "https://vimeo.com/...",
       },
+      {
+  key: "tiktok_url",
+  label: "TikTok",
+  kind: "url",
+  meta: true,
+  placeholder: "https://www.tiktok.com/@creator/video/...",
+},
     ],
   },
 
