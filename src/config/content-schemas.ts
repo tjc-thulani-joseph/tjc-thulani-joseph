@@ -587,7 +587,7 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         label: "Handle / username",
         kind: "text",
         meta: true,
-        placeholder: "@tjc Thulani Joseph",
+        placeholder: "TJC Thulani Joseph",
       },
       {
   key: "homepage_quick_link",
