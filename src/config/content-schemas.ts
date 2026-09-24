@@ -587,8 +587,14 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         label: "Handle / username",
         kind: "text",
         meta: true,
-        placeholder: "@yourusername",
+        placeholder: "@tjc Thulani Joseph",
       },
+      {
+  key: "homepage_quick_link",
+  label: "Show on homepage quick links",
+  kind: "boolean",
+  meta: true,
+},
     ],
   },
 };
