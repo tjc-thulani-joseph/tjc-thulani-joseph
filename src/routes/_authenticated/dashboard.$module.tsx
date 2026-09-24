@@ -7,6 +7,7 @@ import { MessagesManager } from "@/components/dashboard/messages-manager";
 import { ContactRequestsManager } from "@/components/dashboard/contact-requests-manager";
 import { NewsletterManager } from "@/components/dashboard/newsletter-manager";
 import { ActivityLogsManager } from "@/components/dashboard/activity-logs-manager";
+import { SiteSettingsManager } from "@/components/dashboard/site-settings-manager";
 import { ContentManager } from "@/components/dashboard/content-manager";
 import { getContentSchema } from "@/config/content-schemas";
 import { useAuth } from "@/contexts/auth-context";
@@ -15,8 +16,10 @@ export const Route = createFileRoute("/_authenticated/dashboard/$module")({
   beforeLoad: ({ params }) => {
     if (!getModule(params.module)) throw notFound();
   },
+
   head: ({ params }) => {
-    const module = DASHBOARD_MODULES.find((m) => m.slug === params.module);
+    const module = DASHBOARD_MODULES.find((item) => item.slug === params.module);
+
     return {
       meta: [
         { title: `${module?.label ?? "Module"} — TJC OS` },
@@ -24,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/$module")({
       ],
     };
   },
+
   component: ModulePage,
 });
 
@@ -35,23 +39,62 @@ function ModulePage() {
   if (!loading && !atLeast(module.minRole)) {
     return (
       <div className="mx-auto max-w-6xl">
-        <p className="text-xs uppercase tracking-[0.28em] text-gold">{module.group}</p>
-        <h1 className="mt-3 font-display text-3xl font-semibold">{module.label}</h1>
+        <p className="text-xs uppercase tracking-[0.28em] text-gold">
+          {module.group}
+        </p>
+
+        <h1 className="mt-3 font-display text-3xl font-semibold">
+          {module.label}
+        </h1>
+
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Your account does not have permission to open this module. It requires the{" "}
-          <span className="text-foreground">{module.minRole}</span> role or higher.
+          Your account does not have permission to open this module. It
+          requires the{" "}
+          <span className="text-foreground">{module.minRole}</span> role or
+          higher.
         </p>
       </div>
     );
   }
 
-  if (module.slug === "overview") return <OverviewModule />;
-  if (module.slug === "media") return <MediaLibrary />;
-  if (module.resource === "messages") return <MessagesManager />;
-  if (module.resource === "contacts") return <ContactRequestsManager />;
-  if (module.resource === "newsletter") return <NewsletterManager />;
-  if (module.resource === "activity_logs") return <ActivityLogsManager />;
+  if (module.slug === "overview") {
+    return <OverviewModule />;
+  }
+
+  if (module.slug === "media") {
+    return <MediaLibrary />;
+  }
+
+  if (module.resource === "messages") {
+    return <MessagesManager />;
+  }
+
+  if (module.resource === "contacts") {
+    return <ContactRequestsManager />;
+  }
+
+  if (module.resource === "newsletter") {
+    return <NewsletterManager />;
+  }
+
+  if (module.resource === "activity_logs") {
+    return <ActivityLogsManager />;
+  }
+
+  if (module.slug === "settings") {
+    return <SiteSettingsManager />;
+  }
+
   const schema = getContentSchema(module.resource);
-  if (schema) return <ContentManager schema={schema} description={module.description} />;
+
+  if (schema) {
+    return (
+      <ContentManager
+        schema={schema}
+        description={module.description}
+      />
+    );
+  }
+
   return <ModuleWorkspace module={module} />;
 }
