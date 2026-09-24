@@ -62,11 +62,18 @@ export function SocialLinks({
 
       <div className="flex flex-wrap gap-2">
         {links.map((link) => {
-          const url = safeExternalUrl(link.url);
+          const metadata = link.metadata ?? {};
 
-          if (!url) {
-            return null;
-          }
+const url = safeExternalUrl(
+  link.url ??
+    (typeof metadata.url === "string"
+      ? metadata.url
+      : null),
+);
+
+if (!url) {
+  return null;
+}
 
           const handle =
             typeof link.metadata?.handle === "string"
