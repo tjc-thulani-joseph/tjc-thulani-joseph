@@ -90,11 +90,29 @@ const auth: AuthService = {
     return error ? err("auth_sign_out_failed", error.message) : ok(null);
   },
 
-  async requestPasswordReset(email) {
-    const { error } = await client().auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    async requestPasswordReset(email) {
+    const { error } = await client().auth.resetPasswordForEmail(email);
     return error ? err("auth_reset_failed", error.message) : ok(null);
+  },
+
+  async verifyPasswordRecoveryCode(email, token) {
+    const { data, error } = await client().auth.verifyOtp({
+      email,
+      token,
+      type: "recovery",
+    });
+
+    if (error) {
+      return err("auth_recovery_code_invalid", "That verification code is invalid or expired.");
+    }
+
+    const session = await buildSession(data.user, data.session?.expires_at ?? null);
+
+    if (!session) {
+      return err("auth_recovery_failed", "Could not establish the recovery session.");
+    }
+
+    return ok(session);
   },
 
   async updatePassword(password) {
