@@ -10,6 +10,7 @@ export interface AuthService {
   signIn(credentials: Credentials): Promise<Result<AuthSession>>;
   signOut(): Promise<Result<null>>;
   requestPasswordReset(email: string): Promise<Result<null>>;
+  verifyPasswordRecoveryCode(email: string, token: string): Promise<Result<AuthSession>>;
   updatePassword(password: string): Promise<Result<null>>;
   onAuthStateChange(listener: (session: AuthSession | null) => void): () => void;
 }
@@ -78,7 +79,6 @@ export interface TeamMember {
   displayName: string | null;
   avatarUrl: string | null;
   roles: Role[];
-  createdAt: string | null;
 }
 
 /** Roster and role administration. Only a CEO may grant or revoke roles (enforced by RLS). */
@@ -99,4 +99,4 @@ export interface ServiceContainer {
   people: PeopleService;
   activity: ActivityService;
   repository<T extends BaseRecord>(resource: string): Repository<T>;
-}
+} 
