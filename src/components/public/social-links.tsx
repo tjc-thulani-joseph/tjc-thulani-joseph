@@ -6,13 +6,6 @@ import {
   Music2,
   Send,
 } from "lucide-react";
-import {
-  siApplemusic,
-  siFacebook,
-  siSpotify,
-  siTiktok,
-  siYoutube,
-} from "simple-icons";
 import { services } from "@/services";
 import type { ContentRecord } from "@/types";
 import { safeExternalUrl } from "@/lib/media";
@@ -87,27 +80,47 @@ function platformFromLink(link: ContentRecord) {
   return "generic";
 }
 
-function PlatformIcon({
+/*
+ * Small inline brand marks.
+ *
+ * These are intentionally local SVGs so the TJC build does not depend
+ * on an npm icon package or a project terminal installation.
+ */
+function BrandIcon({
   platform,
 }: {
-  platform: string;
+  platform: BrandPlatform;
 }) {
   switch (platform) {
     case "youtube":
       return (
-        <span
-          aria-hidden
-          className="grid size-5 place-items-center rounded-[5px] bg-foreground text-[0.55rem] font-black leading-none text-background"
+        <svg
+          viewBox="0 0 24 24"
+          className="size-5"
+          aria-hidden="true"
+          fill="currentColor"
         >
-          YT
-        </span>
+          <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.7V8.3l6.5 3.7-6.5 3.7Z" />
+        </svg>
+      );
+
+    case "tiktok":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          className="size-5"
+          aria-hidden="true"
+          fill="currentColor"
+        >
+          <path d="M19.6 7.1a5.9 5.9 0 0 1-3.5-1.1v7.1a5.9 5.9 0 1 1-5.1-5.8v3a2.9 2.9 0 1 0 2.1 2.8V2h3a5.9 5.9 0 0 0 3.5 2.7v2.4Z" />
+        </svg>
       );
 
     case "facebook":
       return (
         <Facebook
           className="size-5 fill-current"
-          aria-hidden
+          aria-hidden="true"
         />
       );
 
@@ -115,68 +128,85 @@ function PlatformIcon({
       return (
         <Instagram
           className="size-5"
-          aria-hidden
+          aria-hidden="true"
         />
       );
 
     case "spotify":
       return (
-        <Music2
+        <svg
+          viewBox="0 0 24 24"
           className="size-5"
-          aria-hidden
-        />
+          aria-hidden="true"
+          fill="currentColor"
+        >
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.75.75 0 0 1-1 .2c-2.7-1.7-6.1-2.1-10.1-1.1a.75.75 0 1 1-.4-1.4c4.4-1.2 8.2-.7 11.2 1.2.4.2.5.7.3 1.1Zm1.3-2.9a.95.95 0 0 1-1.3.3c-3.1-1.9-7.8-2.5-11.4-1.4a.95.95 0 1 1-.6-1.8c4.2-1.3 9.4-.7 13 1.5.4.3.5.9.3 1.4Zm.1-3a1.15 1.15 0 0 1-1.6.4c-3.6-2.1-9.4-2.6-13.6-1.4a1.15 1.15 0 1 1-.7-2.2c4.9-1.5 11.3-.9 15.5 1.6.6.3.8 1.1.4 1.6Z" />
+        </svg>
       );
 
-    case "tiktok":
+    case "apple-music":
       return (
-        <span
-          aria-hidden
-          className="text-sm font-black"
+        <svg
+          viewBox="0 0 24 24"
+          className="size-5"
+          aria-hidden="true"
+          fill="currentColor"
         >
-          TT
-        </span>
+          <path d="M16.8 2.8c.2 1-.1 2-.8 2.8-.7.8-1.7 1.3-2.7 1.2-.2-1 .1-2 .8-2.8.7-.7 1.7-1.2 2.7-1.2ZM20.2 17.4c-.5 1.1-1 2-1.7 2.9-.8 1-1.8 2.2-3.2 2.2-1.2 0-1.5-.7-3-.7s-1.9.7-3 .7c-1.4 0-2.5-1.2-3.3-2.2C3.8 17.9 2.9 14 4.4 11.2c1-1.8 2.7-3 4.6-3 .9 0 1.8.4 2.5.7.6.2 1.1.4 1.5.4.4 0 .9-.2 1.6-.5.8-.3 1.7-.7 2.6-.6 1.8.1 3.5 1 4.4 2.5-1.6 1-2.5 2.6-2.5 4.5 0 2 1.1 3.6 2.8 4.2-.4 1.1-.9 2.1-1.7 3Z" />
+        </svg>
       );
 
     default:
       return (
         <Send
           className="size-5"
-          aria-hidden
+          aria-hidden="true"
         />
       );
   }
 }
 
-function BrandIcon({
+function PlatformIcon({
   platform,
 }: {
-  platform: BrandPlatform;
+  platform: string;
 }) {
-  const icon = {
-    youtube: siYoutube,
-    facebook: siFacebook,
-    spotify: siSpotify,
-    tiktok: siTiktok,
-    "apple-music": siApplemusic,
-  }[platform];
+  if (
+    platform === "youtube" ||
+    platform === "tiktok" ||
+    platform === "spotify" ||
+    platform === "apple-music"
+  ) {
+    return (
+      <BrandIcon
+        platform={platform}
+      />
+    );
+  }
 
-  if (!icon) {
-    return null;
+  if (platform === "facebook") {
+    return (
+      <Facebook
+        className="size-5 fill-current"
+        aria-hidden="true"
+      />
+    );
+  }
+
+  if (platform === "instagram") {
+    return (
+      <Instagram
+        className="size-5"
+        aria-hidden="true"
+      />
+    );
   }
 
   return (
-    <svg
-      viewBox="0 0 24 24"
-      role="img"
-      aria-hidden="true"
+    <Send
       className="size-5"
-      style={{ color: `#${icon.hex}` }}
-    >
-      <path
-        d={icon.path}
-        fill="currentColor"
-      />
-    </svg>
+      aria-hidden="true"
+    />
   );
 }
 
@@ -197,13 +227,21 @@ function getHandle(link: ContentRecord) {
     : null;
 }
 
-export function usePublishedSocialLinks(limit = 20) {
+export function usePublishedSocialLinks(
+  limit = 20,
+) {
   const query = useQuery({
-    queryKey: ["public", "social_links", limit],
+    queryKey: [
+      "public",
+      "social_links",
+      limit,
+    ],
 
     queryFn: () =>
       services()
-        .repository<ContentRecord>("social_links")
+        .repository<ContentRecord>(
+          "social_links",
+        )
         .list({
           status: "published",
           perPage: limit,
@@ -227,16 +265,18 @@ export function HomepageQuickLinks() {
   const { links, pending } =
     usePublishedSocialLinks();
 
-  if (pending || links.length === 0) {
+  if (
+    pending ||
+    links.length === 0
+  ) {
     return null;
   }
 
   const quickLinks = links
-    .filter(
-      (link) =>
-        Boolean(
-          link.metadata?.homepage_quick_link,
-        ),
+    .filter((link) =>
+      Boolean(
+        link.metadata?.homepage_quick_link,
+      ),
     )
     .sort(
       (a, b) =>
@@ -285,7 +325,7 @@ export function HomepageQuickLinks() {
                 link.title ??
                 "Official platform"
               }
-              className="grid size-10 place-items-center rounded-full border border-white/15 bg-white/90 shadow-[0_8px_30px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="grid size-9 place-items-center rounded-full border border-white/15 bg-black/25 text-white shadow-[0_8px_30px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               <BrandIcon
                 platform={
@@ -307,7 +347,10 @@ export function SocialLinks({
   const { links, pending } =
     usePublishedSocialLinks();
 
-  if (pending || links.length === 0) {
+  if (
+    pending ||
+    links.length === 0
+  ) {
     return null;
   }
 
@@ -344,7 +387,7 @@ export function SocialLinks({
 
                   <ExternalLink
                     className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-                    aria-hidden
+                    aria-hidden="true"
                   />
                 </div>
 
