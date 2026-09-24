@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Logo } from "@/components/brand/logo";
 import { PRIMARY_NAV, SECONDARY_NAV, SITE } from "@/constants/site";
-import { SocialLinks } from "@/components/public/social-links";
+
 
 export function SiteFooter() {
   return (
@@ -11,9 +11,7 @@ export function SiteFooter() {
           <Logo size={44} />
           <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{SITE.tagline}</p>
         </div>
-        <div className="max-w-xl">
-  <SocialLinks />
-</div>
+        
 
         <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
           <nav aria-label="Footer" className="flex flex-col gap-2.5">
