@@ -21,6 +21,7 @@ const auth: AuthService = {
   signIn: () => fail<AuthSession>(),
   signOut: () => fail<null>(),
   requestPasswordReset: () => fail<null>(),
+  verifyPasswordRecoveryCode: () => fail<AuthSession>(),
   updatePassword: () => fail<null>(),
   onAuthStateChange: () => () => {},
 };
