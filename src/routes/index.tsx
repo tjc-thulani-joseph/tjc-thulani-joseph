@@ -18,6 +18,7 @@ import {
 } from "@/components/public/home/home-data";
 import { Reveal } from "@/components/public/home/reveal";
 import { HomepageQuickLinks } from "@/components/public/social-links";
+import { usePublicSiteSettings } from "@/components/public/site-settings";
 import { SafeImage } from "@/components/public/home/safe-image";
 import { SectionHeading } from "@/components/public/home/section-heading";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,6 @@ import {
   resolveMedia,
   safeExternalUrl,
 } from "@/lib/media";
-import { SITE } from "@/constants/site";
 import type { ContentRecord } from "@/types";
 
 export const Route = createFileRoute("/")({
@@ -781,7 +781,7 @@ function FinalGateway() {
   );
 }
 
-function HomePage() {
+function HomePage() {  const { settings } = usePublicSiteSettings();
   /*
    * Public content feeds.
    *
@@ -830,26 +830,22 @@ function HomePage() {
   </Reveal>
 
   <Reveal delay={40}>
-    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.4em] text-gold">
-      Official site · TJC
-    </p>
-  </Reveal>
+  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.4em] text-gold">
+    Official site · TJC
+  </p>
+</Reveal>
 
-          <Reveal delay={80}>
-            <h1 className="mt-6 max-w-5xl font-display text-5xl font-semibold leading-[0.94] tracking-[-0.03em] md:text-7xl lg:text-[clamp(4.5rem,8vw,7rem)]">
-              Thulani{" "}
-              <span className="text-gold-gradient">
-                Joseph
-              </span>
-            </h1>
-          </Reveal>
+<Reveal delay={80}>
+  <h1 className="mt-6 max-w-5xl font-display text-5xl font-semibold leading-[0.94] tracking-[-0.03em] md:text-7xl lg:text-[clamp(4.5rem,8vw,7rem)]">
+    {settings.siteName}
+  </h1>
+</Reveal>
 
-          <Reveal delay={160}>
-            <p className="mt-7 max-w-2xl text-base leading-relaxed text-foreground/75 md:text-lg">
-              {SITE.tagline} Music, film, photography and the projects being
-              built — gathered in one place.
-            </p>
-          </Reveal>
+<Reveal delay={160}>
+  <p className="mt-7 max-w-2xl text-base leading-relaxed text-foreground/75 md:text-lg">
+    {settings.description}
+  </p>
+</Reveal>
 
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap gap-3">
