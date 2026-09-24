@@ -1,8 +1,105 @@
-import { ExternalLink, Share2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { ExternalLink, Facebook, Instagram, Music2, Play, Send } from "lucide-react";
 import { services } from "@/services";
 import type { ContentRecord } from "@/types";
 import { safeExternalUrl } from "@/lib/media";
+
+type SocialLinksProps = {
+  title?: string;
+  mode?: "compact" | "directory";
+};
+
+function platformFromLink(link: ContentRecord) {
+  const title = String(link.title ?? "").toLowerCase();
+  const url = String(
+    link.url ??
+      (typeof link.metadata?.url === "string"
+        ? link.metadata.url
+        : ""),
+  ).toLowerCase();
+
+  if (title.includes("youtube") || url.includes("youtube.com") || url.includes("youtu.be")) {
+    return "youtube";
+  }
+
+  if (title.includes("facebook") || url.includes("facebook.com")) {
+    return "facebook";
+  }
+
+  if (title.includes("instagram") || url.includes("instagram.com")) {
+    return "instagram";
+  }
+
+  if (title.includes("spotify") || url.includes("spotify.com")) {
+    return "spotify";
+  }
+
+  if (title.includes("tiktok") || url.includes("tiktok.com")) {
+    return "tiktok";
+  }
+
+  return "generic";
+}
+
+function PlatformIcon({
+  platform,
+}: {
+  platform: string;
+}) {
+  switch (platform) {
+    case "youtube":
+      return (
+        <span
+          aria-hidden
+          className="grid size-5 place-items-center rounded-[5px] bg-foreground text-[0.55rem] font-black leading-none text-background"
+        >
+          YT
+        </span>
+      );
+
+    case "facebook":
+      return (
+        <Facebook
+          className="size-5 fill-current"
+          aria-hidden
+        />
+      );
+
+    case "instagram":
+      return (
+        <Instagram
+          className="size-5"
+          aria-hidden
+        />
+      );
+
+    case "spotify":
+      return (
+        <Music2
+          className="size-5"
+          aria-hidden
+        />
+      );
+
+    case "tiktok":
+      return (
+        <span
+          aria-hidden
+          className="text-sm font-black"
+        >
+          TT
+        </span>
+      );
+
+    default:
+      return (
+        <Send
+          className="size-5"
+          aria-hidden
+        />
+      );
+  }
+}
 
 export function usePublishedSocialLinks(limit = 20) {
   const query = useQuery({
@@ -30,55 +127,110 @@ export function usePublishedSocialLinks(limit = 20) {
   };
 }
 
+function getLinkUrl(link: ContentRecord) {
+  const metadata = link.metadata ?? {};
+
+  return safeExternalUrl(
+    link.url ??
+      (typeof metadata.url === "string"
+        ? metadata.url
+        : null),
+  );
+}
+
+function getHandle(link: ContentRecord) {
+  return typeof link.metadata?.handle === "string"
+    ? link.metadata.handle
+    : null;
+}
+
 export function SocialLinks({
   title = "Follow TJC",
-}: {
-  title?: string;
-}) {
+  mode = "compact",
+}: SocialLinksProps) {
   const { links, pending } = usePublishedSocialLinks();
 
   if (pending || links.length === 0) {
     return null;
   }
 
+  if (mode === "directory") {
+    return (
+      <section className="container-tjc section-y">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {links.map((link) => {
+            const url = getLinkUrl(link);
+
+            if (!url) {
+              return null;
+            }
+
+            const platform = platformFromLink(link);
+            const handle = getHandle(link);
+
+            return (
+              <a
+                key={link.id}
+                href={url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="surface-panel group rounded-2xl border border-border p-6 transition-all hover:-translate-y-1 hover:border-gold/50"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-secondary text-gold">
+                    <PlatformIcon platform={platform} />
+                  </div>
+
+                  <ExternalLink
+                    className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </div>
+
+                <h2 className="mt-5 font-display text-xl font-semibold">
+                  {link.title ?? "Official platform"}
+                </h2>
+
+                {handle && (
+                  <p className="mt-1 text-sm text-gold">
+                    {handle}
+                  </p>
+                )}
+
+                {link.description && (
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                    {link.description}
+                  </p>
+                )}
+              </a>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       aria-labelledby="tjc-social-links"
-      className="space-y-4"
+      className="flex items-center gap-3"
     >
-      <div className="flex items-center gap-2">
-        <Share2
-          className="size-4 text-gold"
-          aria-hidden
-        />
+      <h2
+        id="tjc-social-links"
+        className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-gold"
+      >
+        {title}
+      </h2>
 
-        <h2
-          id="tjc-social-links"
-          className="text-xs uppercase tracking-[0.24em] text-gold"
-        >
-          {title}
-        </h2>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
+      <div className="flex items-center gap-1.5">
         {links.map((link) => {
-          const metadata = link.metadata ?? {};
+          const url = getLinkUrl(link);
 
-const url = safeExternalUrl(
-  link.url ??
-    (typeof metadata.url === "string"
-      ? metadata.url
-      : null),
-);
+          if (!url) {
+            return null;
+          }
 
-if (!url) {
-  return null;
-}
-
-          const handle =
-            typeof link.metadata?.handle === "string"
-              ? link.metadata.handle
-              : null;
+          const platform = platformFromLink(link);
 
           return (
             <a
@@ -86,20 +238,11 @@ if (!url) {
               href={url}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-gold/60 hover:text-foreground"
+              aria-label={`Follow TJC on ${link.title ?? "this platform"}`}
+              title={link.title ?? "Official platform"}
+              className="grid size-9 place-items-center rounded-full border border-border bg-background/40 text-muted-foreground transition-all hover:border-gold/60 hover:bg-gold/10 hover:text-gold"
             >
-              <span>{link.title ?? "Platform"}</span>
-
-              {handle && (
-                <span className="text-xs text-muted-foreground/70">
-                  {handle}
-                </span>
-              )}
-
-              <ExternalLink
-                className="size-3.5"
-                aria-hidden
-              />
+              <PlatformIcon platform={platform} />
             </a>
           );
         })}
