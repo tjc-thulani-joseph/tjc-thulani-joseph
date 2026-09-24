@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PRIMARY_NAV, SECONDARY_NAV } from "@/constants/site";
 import { cn } from "@/lib/utils";
+import { SocialLinks } from "@/components/public/social-links";
 
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -46,14 +47,23 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
+  <div className="flex items-center gap-3">
+  <div className="hidden xl:block">
+    <SocialLinks title="Follow TJC" />
+  </div>
 
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm" className="hidden hairline-gold bg-transparent text-gold hover:bg-accent sm:inline-flex">
-            <Link to="/auth">
-              <ShieldCheck className="size-4" aria-hidden />
-              TJC OS
-            </Link>
-          </Button>
+  <Button
+    asChild
+    variant="outline"
+    size="sm"
+    className="hidden hairline-gold bg-transparent text-gold hover:bg-accent sm:inline-flex"
+  >
+    <Link to="/auth">
+      <ShieldCheck className="size-4" aria-hidden />
+      TJC OS
+    </Link>
+  </Button>
+        
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild className="lg:hidden">
@@ -77,6 +87,9 @@ export function SiteHeader() {
                   </Link>
                 ))}
                 <div className="mt-6 flex flex-wrap gap-3 border-t border-border pt-6">
+                  <div className="mt-6 border-t border-border pt-6">
+  <SocialLinks title="Follow TJC" />
+</div>
                   {SECONDARY_NAV.map((item) => (
                     <Link key={item.to} to={item.to} className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                       {item.label}
