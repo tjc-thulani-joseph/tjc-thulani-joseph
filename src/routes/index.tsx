@@ -17,6 +17,7 @@ import {
   formatDate,
 } from "@/components/public/home/home-data";
 import { Reveal } from "@/components/public/home/reveal";
+import { HomepageQuickLinks } from "@/components/public/social-links";
 import { SafeImage } from "@/components/public/home/safe-image";
 import { SectionHeading } from "@/components/public/home/section-heading";
 import { Button } from "@/components/ui/button";
@@ -824,11 +825,15 @@ function HomePage() {
         <div className="hero-overlay absolute inset-0 -z-10" />
 
         <div className="container-tjc relative flex min-h-[var(--hero-min-height)] flex-col justify-center py-24 sm:py-28">
-          <Reveal>
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.4em] text-gold">
-              Official site · TJC
-            </p>
-          </Reveal>
+  <Reveal>
+    <HomepageQuickLinks />
+  </Reveal>
+
+  <Reveal delay={40}>
+    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.4em] text-gold">
+      Official site · TJC
+    </p>
+  </Reveal>
 
           <Reveal delay={80}>
             <h1 className="mt-6 max-w-5xl font-display text-5xl font-semibold leading-[0.94] tracking-[-0.03em] md:text-7xl lg:text-[clamp(4.5rem,8vw,7rem)]">
