@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import heroBackdrop from "@/assets/hero-backdrop.jpg";
+import { SITE } from "@/constants/site";
 import { PublicLayout } from "@/components/layout/public-layout";
 import {
   usePublished,
