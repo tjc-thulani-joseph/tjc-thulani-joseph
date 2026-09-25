@@ -9,6 +9,7 @@ import { NewsletterManager } from "@/components/dashboard/newsletter-manager";
 import { ActivityLogsManager } from "@/components/dashboard/activity-logs-manager";
 import { SiteSettingsManager } from "@/components/dashboard/site-settings-manager";
 import { ContentManager } from "@/components/dashboard/content-manager";
+import { AICenter } from "@/components/dashboard/ai-center";
 import { getContentSchema } from "@/config/content-schemas";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -18,7 +19,9 @@ export const Route = createFileRoute("/_authenticated/dashboard/$module")({
   },
 
   head: ({ params }) => {
-    const module = DASHBOARD_MODULES.find((item) => item.slug === params.module);
+    const module = DASHBOARD_MODULES.find(
+      (item) => item.slug === params.module,
+    );
 
     return {
       meta: [
@@ -63,6 +66,10 @@ function ModulePage() {
 
   if (module.slug === "media") {
     return <MediaLibrary />;
+  }
+
+  if (module.slug === "ai") {
+    return <AICenter />;
   }
 
   if (module.resource === "messages") {
