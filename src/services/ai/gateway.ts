@@ -1,3 +1,6 @@
+import {
+  FunctionsHttpError,
+} from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type {
   AIMessage,
@@ -37,23 +40,31 @@ export async function requestTjcAi(
     },
   });
 
-  /**
-   * Supabase may return both an invoke error and a response body.
-   * Preserve a safe TJC AI error returned by the gateway so we can
-   * diagnose the real server-side failure instead of hiding it.
-   */
   if (error) {
-    const gatewayResult = data as AIResult<AIResponse> | null;
+    /**
+     * Supabase Edge Functions return their actual error payload
+     * through FunctionsHttpError.context.
+     */
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const gatewayResult =
+          (await error.context.json()) as AIResult<AIResponse>;
 
-    if (gatewayResult?.error) {
-      return gatewayResult;
+        if (gatewayResult?.error) {
+          return gatewayResult;
+        }
+      } catch {
+        // Fall through to the safe generic error below.
+      }
     }
 
     return {
       data: null,
       error: {
         code: "tjc_ai_gateway_failed",
-        message: error.message || "TJC AI could not reach its intelligence gateway.",
+        message:
+          error.message ||
+          "TJC AI could not reach its intelligence gateway.",
         retryable: true,
       },
     };
