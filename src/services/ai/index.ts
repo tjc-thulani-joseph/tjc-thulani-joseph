@@ -10,3 +10,15 @@ export type {
   AIError,
   AIResult,
 } from "./types";
+
+export type {
+  AIProviderId,
+  AIProviderStatus,
+  AIProviderDefinition,
+} from "./provider-registry";
+
+export {
+  AI_PROVIDERS,
+  getAIProvider,
+  getConfiguredAIProviders,
+} from "./provider-registry";
