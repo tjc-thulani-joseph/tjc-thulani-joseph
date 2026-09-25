@@ -1,3 +1,7 @@
+export {
+  TJC_AI_IDENTITY,
+} from "./types";
+
 export type {
   AIMessageRole,
   AIMessage,
@@ -12,18 +16,19 @@ export type {
 } from "./types";
 
 export type {
-  AIProviderId,
-  AIProviderStatus,
-  AIProviderDefinition,
-} from "./provider-registry";
+  AIEngineId,
+  AIEngineStatus,
+  AIEngineDefinition,
+} from "./engine-registry";
 
 export {
-  AI_PROVIDERS,
-  getAIProvider,
-  getConfiguredAIProviders,
-} from "./provider-registry";
+  AI_ENGINES,
+  getAIEngine,
+  getSelectableAIEngines,
+  getActiveAIEngine,
+} from "./engine-registry";
 
 export type {
-  AIProviderHealth,
-  AIProviderAdapter,
+  AIEngineHealth,
+  AIEngineAdapter,
 } from "./provider-adapter";
