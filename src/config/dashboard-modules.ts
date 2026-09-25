@@ -15,10 +15,10 @@ import {
   Navigation,
   Search,
   Settings,
+  Share2,
   Sparkles,
   User,
   Workflow,
-  Share2,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/types";
@@ -135,6 +135,16 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
   },
 
   {
+    slug: "ai-knowledge",
+    label: "TJC AI Knowledge",
+    description: "Verified knowledge that TJC AI is allowed to use.",
+    icon: Bot,
+    group: "Content",
+    minRole: "editor",
+    resource: "ai_knowledge",
+  },
+
+  {
     slug: "messages",
     label: "TJC Messages",
     description: "Direct messages from the contact channels.",
@@ -214,7 +224,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     resource: "activity_logs",
   },
 
-    {
+  {
     slug: "ai",
     label: "TJC AI",
     description: "TJC's intelligence, context, tools and automation layer.",
