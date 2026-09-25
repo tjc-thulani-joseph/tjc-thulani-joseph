@@ -37,7 +37,7 @@ export interface DashboardModule {
 export const DASHBOARD_MODULES: DashboardModule[] = [
   {
     slug: "overview",
-    label: "Overview",
+    label: "overview os",
     description: "System status and quick actions across TJC OS.",
     icon: LayoutDashboard,
     group: "Overview",
@@ -46,7 +46,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "analytics",
-    label: "Analytics",
+    label: "Analytics os",
     description: "Traffic, engagement and content performance.",
     icon: BarChart3,
     group: "Overview",
@@ -56,7 +56,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "media",
-    label: "Media Library",
+    label: "TJC Media Library",
     description: "Central store for every image, video and document.",
     icon: Library,
     group: "Content",
@@ -66,7 +66,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "music",
-    label: "Music Manager",
+    label: "TJC Music Manager",
     description: "Albums, songs, categories and playlists.",
     icon: Music,
     group: "Content",
@@ -76,7 +76,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "videos",
-    label: "Video Manager",
+    label: "TJC Video Manager",
     description: "Video releases, categories and features.",
     icon: Film,
     group: "Content",
@@ -86,7 +86,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "gallery",
-    label: "Gallery Manager",
+    label: "TJC Gallery Manager",
     description: "Photo sets and gallery categories.",
     icon: ImageIcon,
     group: "Content",
@@ -96,7 +96,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "blog",
-    label: "Blog Manager",
+    label: "TJC Blog Manager",
     description: "Posts, categories and publishing schedule.",
     icon: FileText,
     group: "Content",
@@ -106,7 +106,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "biography",
-    label: "Biography",
+    label: "TJC Biography",
     description: "Story, timeline, skills and achievements.",
     icon: User,
     group: "Content",
@@ -116,7 +116,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "projects",
-    label: "Projects",
+    label: "TJC Projects",
     description: "Creative and business ventures.",
     icon: Sparkles,
     group: "Content",
@@ -126,7 +126,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "homepage",
-    label: "Homepage Builder",
+    label: "TJC Homepage Builder",
     description: "Compose and order homepage sections.",
     icon: Workflow,
     group: "Content",
@@ -136,7 +136,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "messages",
-    label: "Messages",
+    label: "TJC Messages",
     description: "Direct messages from the contact channels.",
     icon: Mail,
     group: "Audience",
@@ -156,7 +156,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "newsletter",
-    label: "Newsletter",
+    label: "TJC Newsletter",
     description: "Subscribers and broadcast history.",
     icon: CalendarClock,
     group: "Audience",
@@ -166,7 +166,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
 
   {
     slug: "seo",
-    label: "SEO Manager",
+    label: "SEO TJC Manage Centre",
     description: "Per-page metadata, structured data and sitemaps.",
     icon: Search,
     group: "System",
@@ -214,10 +214,10 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     resource: "activity_logs",
   },
 
-  {
+    {
     slug: "ai",
-    label: "AI Center",
-    description: "Provider-agnostic AI workspace. Architecture ready.",
+    label: "TJC AI",
+    description: "TJC's intelligence, context, tools and automation layer.",
     icon: Bot,
     group: "System",
     minRole: "ceo",
