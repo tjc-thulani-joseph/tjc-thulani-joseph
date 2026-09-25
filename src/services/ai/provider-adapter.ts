@@ -1,12 +1,28 @@
 /**
- * TJC AI Provider Adapter Contract
+ * TJC AI Engine Adapter Contract
  *
- * Every AI provider must communicate with TJC AI through this interface.
+ * An engine adapter is the server-side implementation boundary
+ * between TJC AI and an external AI backend.
  *
- * Provider-specific SDKs, HTTP requests, authentication, request mapping,
- * response mapping, retries, and provider quirks belong inside the adapter.
+ * Example:
  *
- * TJC OS must never depend directly on those provider implementations.
+ * TJC AI
+ *   ↓
+ * Gemini Engine Adapter
+ *   ↓
+ * Gemini API
+ *
+ * The adapter owns:
+ * - authentication
+ * - provider SDK/HTTP calls
+ * - request translation
+ * - response translation
+ * - provider-specific errors
+ * - retries
+ * - provider quirks
+ *
+ * TJC OS application code must never call these external
+ * services directly.
  */
 
 import type {
@@ -15,54 +31,51 @@ import type {
   AIRequest,
   AIResponse,
   AIResult,
-  AIProviderId,
 } from "./types";
 
-/**
- * Provider runtime health information.
- */
-export interface AIProviderHealth {
+import type { AIEngineId } from "./engine-registry";
+
+export interface AIEngineHealth {
   available: boolean;
   message: string | null;
 }
 
-/**
- * Every provider adapter must implement this contract.
- */
-export interface AIProviderAdapter {
+export interface AIEngineAdapter {
   /**
-   * Stable TJC provider identifier.
+   * Stable internal TJC engine identifier.
    */
-  readonly providerId: AIProviderId;
+  readonly engineId: AIEngineId;
 
   /**
-   * Human-readable provider name.
+   * Internal engine label.
+   *
+   * This is not the public TJC AI identity.
    */
   readonly label: string;
 
   /**
-   * Capabilities supported by this adapter.
-   *
-   * Individual models may support fewer capabilities.
+   * Capabilities supported by the engine adapter.
    */
   readonly capabilities: AICapability[];
 
   /**
-   * Generate a provider-neutral AI response.
+   * Generate a provider-neutral TJC AI response.
    */
-  generate(request: AIRequest): Promise<AIResult<AIResponse>>;
+  generate(
+    request: AIRequest,
+  ): Promise<AIResult<AIResponse>>;
 
   /**
-   * Return models currently available to TJC through this adapter.
-   *
-   * The implementation may eventually obtain this dynamically
-   * from the provider.
+   * Return models currently available through this engine.
    */
-  listModels(): Promise<AIResult<AIModelDescriptor[]>>;
+  listModels(): Promise<
+    AIResult<AIModelDescriptor[]>
+  >;
 
   /**
-   * Check whether the adapter can currently communicate
-   * with its provider.
+   * Check engine availability.
    */
-  health(): Promise<AIResult<AIProviderHealth>>;
+  health(): Promise<
+    AIResult<AIEngineHealth>
+  >;
 }
