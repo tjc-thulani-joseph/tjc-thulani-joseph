@@ -37,12 +37,23 @@ export async function requestTjcAi(
     },
   });
 
+  /**
+   * Supabase may return both an invoke error and a response body.
+   * Preserve a safe TJC AI error returned by the gateway so we can
+   * diagnose the real server-side failure instead of hiding it.
+   */
   if (error) {
+    const gatewayResult = data as AIResult<AIResponse> | null;
+
+    if (gatewayResult?.error) {
+      return gatewayResult;
+    }
+
     return {
       data: null,
       error: {
         code: "tjc_ai_gateway_failed",
-        message: "TJC AI could not reach its intelligence gateway.",
+        message: error.message || "TJC AI could not reach its intelligence gateway.",
         retryable: true,
       },
     };
@@ -59,5 +70,11 @@ export async function requestTjcAi(
     };
   }
 
-  return data as AIResult<AIResponse>;
+  const result = data as AIResult<AIResponse>;
+
+  if (result.error) {
+    return result;
+  }
+
+  return result;
 }
