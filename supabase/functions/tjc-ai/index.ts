@@ -1,19 +1,28 @@
 /**
  * TJC AI Secure Gateway
  *
- * This is the server-side boundary between TJC OS and TJC AI providers.
+ * Server-side entry point for TJC AI.
  *
- * IMPORTANT:
- * - Provider API keys must never exist in browser code.
- * - Provider SDKs must never be imported by the public frontend.
- * - Provider-specific logic belongs behind the TJC AI adapter layer.
- * - This gateway requires an authenticated TJC OS user.
+ * Flow:
  *
- * 7A.4 establishes the secure gateway.
- * Provider execution is added in later AI foundation steps.
+ * TJC OS
+ *   ↓
+ * authenticated request
+ *   ↓
+ * TJC AI gateway
+ *   ↓
+ * provider registry
+ *   ↓
+ * provider adapter
+ *   ↓
+ * selected AI provider
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+import {
+  getAIProviderAdapter,
+} from "./provider-registry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,21 +44,11 @@ interface AIMessage {
 
 interface AIRequest {
   messages: AIMessage[];
+  provider?: "openai";
   model?: string;
   maxOutputTokens?: number;
   temperature?: number;
   metadata?: Record<string, unknown>;
-}
-
-interface AIError {
-  code: string;
-  message: string;
-  retryable: boolean;
-}
-
-interface AIResponse {
-  data: null;
-  error: AIError;
 }
 
 function json(
@@ -65,26 +64,61 @@ function json(
   });
 }
 
-function isValidMessage(value: unknown): value is AIMessage {
-  if (!value || typeof value !== "object") return false;
+function isValidMessage(
+  value: unknown,
+): value is AIMessage {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
 
-  const message = value as Record<string, unknown>;
+  const message =
+    value as Record<string, unknown>;
 
   return (
     typeof message.role === "string" &&
-    ["system", "user", "assistant", "tool"].includes(message.role) &&
+    [
+      "system",
+      "user",
+      "assistant",
+      "tool",
+    ].includes(message.role) &&
     typeof message.content === "string"
   );
 }
 
-function isValidAIRequest(value: unknown): value is AIRequest {
-  if (!value || typeof value !== "object") return false;
+function isValidAIRequest(
+  value: unknown,
+): value is AIRequest {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
 
-  const request = value as Record<string, unknown>;
+  const request =
+    value as Record<string, unknown>;
 
-  if (!Array.isArray(request.messages)) return false;
+  if (!Array.isArray(request.messages)) {
+    return false;
+  }
 
-  if (!request.messages.every(isValidMessage)) return false;
+  if (
+    request.messages.length === 0 ||
+    request.messages.length > 100
+  ) {
+    return false;
+  }
+
+  if (
+    !request.messages.every(isValidMessage)
+  ) {
+    return false;
+  }
+
+  if (
+    request.provider !== undefined &&
+    request.provider !== "openai"
+  ) {
+    return false;
+  }
 
   if (
     request.model !== undefined &&
@@ -108,7 +142,9 @@ function isValidAIRequest(value: unknown): value is AIRequest {
     request.temperature !== undefined &&
     (
       typeof request.temperature !== "number" ||
-      !Number.isFinite(request.temperature)
+      !Number.isFinite(request.temperature) ||
+      request.temperature < 0 ||
+      request.temperature > 2
     )
   ) {
     return false;
@@ -130,7 +166,8 @@ Deno.serve(async (request) => {
         data: null,
         error: {
           code: "method_not_allowed",
-          message: "TJC AI gateway accepts POST requests only.",
+          message:
+            "TJC AI gateway accepts POST requests only.",
           retryable: false,
         },
       },
@@ -138,16 +175,23 @@ Deno.serve(async (request) => {
     );
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseUrl =
+    Deno.env.get("SUPABASE_URL");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  const supabaseAnonKey =
+    Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (
+    !supabaseUrl ||
+    !supabaseAnonKey
+  ) {
     return json(
       {
         data: null,
         error: {
           code: "gateway_not_configured",
-          message: "TJC AI gateway is not configured.",
+          message:
+            "TJC AI gateway is not configured.",
           retryable: false,
         },
       },
@@ -155,15 +199,19 @@ Deno.serve(async (request) => {
     );
   }
 
-  const authorization = request.headers.get("Authorization");
+  const authorization =
+    request.headers.get("Authorization");
 
-  if (!authorization?.startsWith("Bearer ")) {
+  if (
+    !authorization?.startsWith("Bearer ")
+  ) {
     return json(
       {
         data: null,
         error: {
           code: "authentication_required",
-          message: "A valid TJC OS session is required.",
+          message:
+            "A valid TJC OS session is required.",
           retryable: false,
         },
       },
@@ -171,7 +219,10 @@ Deno.serve(async (request) => {
     );
   }
 
-  const accessToken = authorization.slice("Bearer ".length).trim();
+  const accessToken =
+    authorization
+      .slice("Bearer ".length)
+      .trim();
 
   if (!accessToken) {
     return json(
@@ -179,7 +230,8 @@ Deno.serve(async (request) => {
         data: null,
         error: {
           code: "authentication_required",
-          message: "A valid TJC OS session is required.",
+          message:
+            "A valid TJC OS session is required.",
           retryable: false,
         },
       },
@@ -187,29 +239,37 @@ Deno.serve(async (request) => {
     );
   }
 
-  const supabase = createClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+  const supabase =
+    createClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
       },
-    },
-  );
+    );
 
   const {
     data: userData,
     error: userError,
-  } = await supabase.auth.getUser(accessToken);
+  } =
+    await supabase.auth.getUser(
+      accessToken,
+    );
 
-  if (userError || !userData.user) {
+  if (
+    userError ||
+    !userData.user
+  ) {
     return json(
       {
         data: null,
         error: {
           code: "authentication_invalid",
-          message: "The TJC OS session is invalid or expired.",
+          message:
+            "The TJC OS session is invalid or expired.",
           retryable: false,
         },
       },
@@ -227,7 +287,8 @@ Deno.serve(async (request) => {
         data: null,
         error: {
           code: "invalid_json",
-          message: "The AI request body must contain valid JSON.",
+          message:
+            "The AI request body must contain valid JSON.",
           retryable: false,
         },
       },
@@ -241,7 +302,8 @@ Deno.serve(async (request) => {
         data: null,
         error: {
           code: "invalid_ai_request",
-          message: "The request does not match the TJC AI request contract.",
+          message:
+            "The request does not match the TJC AI request contract.",
           retryable: false,
         },
       },
@@ -249,28 +311,45 @@ Deno.serve(async (request) => {
     );
   }
 
-  /*
-   * 7A.4 intentionally stops here.
-   *
-   * The request has:
-   * - reached the secure server boundary
-   * - passed authentication
-   * - passed contract validation
-   *
-   * Provider execution will be connected through the TJC AI
-   * provider adapter system in the following steps.
-   */
+  const providerId =
+    body.provider ?? "openai";
+
+  const adapter =
+    getAIProviderAdapter(
+      providerId,
+    );
+
+  if (!adapter) {
+    return json(
+      {
+        data: null,
+        error: {
+          code: "ai_provider_not_available",
+          message:
+            "The requested AI provider is not available.",
+          retryable: false,
+        },
+      },
+      503,
+    );
+  }
+
+  const result =
+    await adapter.generate({
+      messages: body.messages,
+      model: body.model,
+      maxOutputTokens:
+        body.maxOutputTokens,
+      temperature:
+        body.temperature,
+      metadata: {
+        ...(body.metadata ?? {}),
+        userId: userData.user.id,
+      },
+    });
 
   return json(
-    {
-      data: null,
-      error: {
-        code: "ai_provider_not_connected",
-        message:
-          "TJC AI gateway is online, but no AI provider adapter is connected yet.",
-        retryable: false,
-      },
-    },
-    503,
+    result,
+    result.error ? 502 : 200,
   );
 });
