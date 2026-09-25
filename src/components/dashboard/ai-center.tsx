@@ -1,513 +1,290 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  Bot,
-  Check,
-  Copy,
-  Loader2,
-  Plus,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
-  User,
-} from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { requestTjcAi } from "@/services/ai/gateway";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Copy, Plus, Send } from "lucide-react";
+import { toast } from "sonner";
+import { streamTjcAi } from "@/services/ai/gateway";
 import type { AIMessage } from "@/services/ai/types";
 
-type ChatMessage = AIMessage & {
+interface ChatMessage extends AIMessage {
   id: string;
-};
+}
 
-function createMessageId(): string {
-  return `${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
+function createMessage(
+  role: AIMessage["role"],
+  content: string,
+): ChatMessage {
+  return {
+    id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    role,
+    content,
+  };
 }
 
 export function AICenter() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(
-    null,
-  );
 
-  const conversationEndRef =
-    useRef<HTMLDivElement | null>(null);
+  const conversationRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    conversationEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  }, [messages, loading]);
+    const element = conversationRef.current;
 
-  async function handleSubmit(
-    event?: React.FormEvent<HTMLFormElement>,
-  ) {
-    event?.preventDefault();
+    if (!element) return;
 
+    element.scrollTop = element.scrollHeight;
+  }, [messages]);
+
+  const canSend = useMemo(
+    () => prompt.trim().length > 0 && !loading,
+    [prompt, loading],
+  );
+
+  function handleNewChat() {
+    if (loading) return;
+
+    setMessages([]);
+    setPrompt("");
+  }
+
+  async function handleSubmit() {
     const content = prompt.trim();
 
-    if (!content || loading) {
-      return;
-    }
+    if (!content || loading) return;
 
-    const userMessage: ChatMessage = {
-      id: createMessageId(),
-      role: "user",
-      content,
-    };
+    const userMessage = createMessage("user", content);
+    const assistantMessage = createMessage("assistant", "");
 
-    const nextMessages = [...messages, userMessage];
-
-    /*
-     * Clear the composer immediately.
-     *
-     * The message now belongs to the conversation,
-     * not to the typing field.
-     */
-    setPrompt("");
-    setMessages(nextMessages);
-    setError("");
-    setLoading(true);
-
-    const result = await requestTjcAi(
-      nextMessages.map(({ role, content: messageContent }) => ({
+    const conversationMessages: AIMessage[] = [
+      ...messages.map(({ role, content: messageContent }) => ({
         role,
         content: messageContent,
       })),
-    );
+      {
+        role: userMessage.role,
+        content: userMessage.content,
+      },
+    ];
 
-    setLoading(false);
-
-    if (result.error) {
-      setError(result.error.message);
-      return;
-    }
-
-    const assistantContent =
-      result.data?.message.content?.trim();
-
-    if (!assistantContent) {
-      setError(
-        "TJC AI returned an empty response. Please try again.",
-      );
-      return;
-    }
-
+    setPrompt("");
     setMessages((current) => [
       ...current,
-      {
-        id: createMessageId(),
-        role: "assistant",
-        content: assistantContent,
-      },
+      userMessage,
+      assistantMessage,
     ]);
+    setLoading(true);
+
+    try {
+      const result = await streamTjcAi(conversationMessages, {
+        onEvent: (event) => {
+          if (event.type === "delta") {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === assistantMessage.id
+                  ? {
+                      ...message,
+                      content: message.content + event.content,
+                    }
+                  : message,
+              ),
+            );
+
+            return;
+          }
+
+          if (event.type === "error") {
+            setMessages((current) =>
+              current.filter(
+                (message) => message.id !== assistantMessage.id,
+              ),
+            );
+
+            toast.error("TJC AI could not complete the response", {
+              description: event.error.message,
+            });
+          }
+        },
+      });
+
+      if (result.error) {
+        setMessages((current) =>
+          current.filter(
+            (message) => message.id !== assistantMessage.id,
+          ),
+        );
+
+        toast.error("TJC AI could not complete the response", {
+          description: result.error.message,
+        });
+      }
+    } catch (error) {
+      setMessages((current) =>
+        current.filter(
+          (message) => message.id !== assistantMessage.id,
+        ),
+      );
+
+      toast.error("TJC AI could not complete the response", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleCopy(content: string) {
+    void navigator.clipboard.writeText(content).then(
+      () => {
+        toast.success("Copied to clipboard");
+      },
+      () => {
+        toast.error("Could not copy response");
+      },
+    );
   }
 
   function handleKeyDown(
     event: React.KeyboardEvent<HTMLTextAreaElement>,
   ) {
-    if (event.key !== "Enter" || event.shiftKey) {
-      return;
-    }
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
 
-    event.preventDefault();
-
-    if (!loading && prompt.trim()) {
-      void handleSubmit();
-    }
-  }
-
-  function handleNewChat() {
-    if (loading) {
-      return;
-    }
-
-    setMessages([]);
-    setPrompt("");
-    setError("");
-    setCopiedId(null);
-  }
-
-  async function handleCopy(
-    id: string,
-    content: string,
-  ) {
-    try {
-      await navigator.clipboard.writeText(content);
-
-      setCopiedId(id);
-
-      window.setTimeout(() => {
-        setCopiedId((current) =>
-          current === id ? null : current,
-        );
-      }, 1600);
-    } catch {
-      setError(
-        "TJC AI could not copy that message.",
-      );
+      if (canSend) {
+        void handleSubmit();
+      }
     }
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-gold">
-            System · Intelligence
-          </p>
+    <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-6">
+      <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gold">
+              TJC AI
+            </p>
 
-          <h1 className="mt-3 flex items-center gap-3 font-display text-3xl font-semibold">
-            <Bot
-              className="size-7 text-gold"
-              aria-hidden
-            />
-            TJC AI
-          </h1>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+              Intelligence Layer
+            </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            The intelligence layer inside TJC OS. TJC AI
-            connects your workspace to its active engine
-            through a secure server-side gateway.
-          </p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              TJC AI is the intelligence layer inside TJC OS. External AI
+              engines are internal infrastructure and are not the identity of
+              this system.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNewChat}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" />
+            New chat
+          </button>
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-sm backdrop-blur">
+        <div
+          ref={conversationRef}
+          className="min-h-[420px] flex-1 space-y-5 overflow-y-auto p-5 sm:p-6"
+        >
+          {messages.length === 0 ? (
+            <div className="flex min-h-[360px] items-center justify-center">
+              <div className="max-w-lg text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-gold/30 bg-gold/10 text-gold">
+                  <span className="text-lg font-bold">TJC</span>
+                </div>
+
+                <h2 className="mt-5 text-xl font-semibold">
+                  Welcome to TJC AI
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  Ask TJC AI a question, explore an idea, or work with your
+                  TJC OS knowledge and systems.
+                </p>
+              </div>
+            </div>
+          ) : (
+            messages.map((message) => {
+              const isUser = message.role === "user";
+
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    isUser ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[75%] ${
+                      isUser
+                        ? "bg-foreground text-background"
+                        : "border border-border/60 bg-background/70"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 whitespace-pre-wrap text-sm leading-6">
+                        {message.content ||
+                          (loading && !isUser ? "…" : "")}
+                      </div>
+
+                      {!isUser && message.content ? (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(message.content)}
+                          className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                          aria-label="Copy response"
+                          title="Copy response"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
-        <Badge
-          variant="outline"
-          className="border-border px-3 py-1.5 text-muted-foreground"
-        >
-          <span className="mr-2 size-1.5 rounded-full bg-gold" />
-          Online
-        </Badge>
-      </div>
+        <div className="border-t border-border/60 p-4 sm:p-5">
+          <div className="flex items-end gap-3 rounded-2xl border border-border/70 bg-background/70 p-2">
+            <textarea
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={loading}
+              rows={1}
+              placeholder="Message TJC AI..."
+              className="min-h-[46px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            />
 
-      <div className="mt-8 grid gap-5 md:grid-cols-3">
-        <Card className="surface-panel border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Sparkles
-                className="size-4 text-gold"
-                aria-hidden
-              />
-              TJC AI
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Permanent intelligence layer
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="surface-panel border-border">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Secure Gateway
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Authenticated server-side requests
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="surface-panel border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <ShieldCheck
-                className="size-4 text-gold"
-                aria-hidden
-              />
-              Credentials
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Provider keys stay off the browser
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="surface-panel mt-8 overflow-hidden border-border">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle className="font-display text-lg">
-                TJC AI Workspace
-              </CardTitle>
-
-              <p className="mt-1 text-xs text-muted-foreground">
-                Your conversation stays here until you
-                start a new chat.
-              </p>
-            </div>
-
-            <Button
+            <button
               type="button"
-              variant="outline"
-              onClick={handleNewChat}
-              disabled={
-                loading || messages.length === 0
-              }
-              className="rounded-full"
+              onClick={() => void handleSubmit()}
+              disabled={!canSend}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-foreground px-4 text-sm font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <Plus
-                className="size-4"
-                aria-hidden
-              />
-              New chat
-            </Button>
+              <Send className="h-4 w-4" />
+
+              <span className="hidden sm:inline">
+                {loading ? "Streaming…" : "Ask TJC AI"}
+              </span>
+            </button>
           </div>
-        </CardHeader>
 
-        <CardContent className="p-0">
-          <div className="flex min-h-[520px] flex-col">
-            <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
-              {messages.length === 0 ? (
-                <div className="flex min-h-[380px] items-center justify-center">
-                  <div className="max-w-md text-center">
-                    <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-border">
-                      <Bot
-                        className="size-7 text-gold"
-                        aria-hidden
-                      />
-                    </div>
-
-                    <h2 className="mt-5 font-display text-xl font-semibold">
-                      Welcome to TJC AI
-                    </h2>
-
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                      Hi and welcome to TJC OS. How can I
-                      help you today?
-                    </p>
-
-                    <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-                      Ask a question to begin your
-                      conversation with TJC AI.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                messages.map((message) => {
-                  const isUser =
-                    message.role === "user";
-
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex ${
-                        isUser
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`flex max-w-[90%] gap-3 sm:max-w-[78%] ${
-                          isUser
-                            ? "flex-row-reverse"
-                            : "flex-row"
-                        }`}
-                      >
-                        <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-border">
-                          {isUser ? (
-                            <User
-                              className="size-4"
-                              aria-hidden
-                            />
-                          ) : (
-                            <Bot
-                              className="size-4 text-gold"
-                              aria-hidden
-                            />
-                          )}
-                        </div>
-
-                        <div
-                          className={`rounded-2xl border p-4 ${
-                            isUser
-                              ? "border-border bg-muted/40"
-                              : "border-border bg-background"
-                          }`}
-                        >
-                          <div className="mb-2 flex items-center justify-between gap-3">
-                            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-gold">
-                              {isUser
-                                ? "You"
-                                : "TJC AI"}
-                            </p>
-
-                            {!isUser ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                onClick={() =>
-                                  void handleCopy(
-                                    message.id,
-                                    message.content,
-                                  )
-                                }
-                                aria-label="Copy TJC AI response"
-                              >
-                                {copiedId ===
-                                message.id ? (
-                                  <Check
-                                    className="size-3.5"
-                                    aria-hidden
-                                  />
-                                ) : (
-                                  <Copy
-                                    className="size-3.5"
-                                    aria-hidden
-                                  />
-                                )}
-                              </Button>
-                            ) : null}
-                          </div>
-
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                            {message.content}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-
-              {loading ? (
-                <div className="flex justify-start">
-                  <div className="flex max-w-[90%] gap-3 sm:max-w-[78%]">
-                    <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-border">
-                      <Bot
-                        className="size-4 text-gold"
-                        aria-hidden
-                      />
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-background p-4">
-                      <div className="flex items-center gap-2">
-                        <Loader2
-                          className="size-4 animate-spin text-gold"
-                          aria-hidden
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          TJC AI is thinking…
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              <div ref={conversationEndRef} />
-            </div>
-                        <div className="border-t border-border p-4 sm:p-5">
-              {error ? (
-                <div className="mb-3 rounded-xl border border-border px-4 py-3">
-                  <p className="text-sm text-muted-foreground">
-                    {error}
-                  </p>
-                </div>
-              ) : null}
-
-              <form
-                onSubmit={(event) =>
-                  void handleSubmit(event)
-                }
-                className="rounded-2xl border border-border bg-background p-2"
-              >
-                <Textarea
-                  value={prompt}
-                  onChange={(event) =>
-                    setPrompt(event.target.value)
-                  }
-                  onKeyDown={handleKeyDown}
-                  placeholder="Message TJC AI..."
-                  className="min-h-24 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
-                  disabled={loading}
-                  autoComplete="off"
-                />
-
-                <div className="flex flex-wrap items-center justify-between gap-3 px-2 pb-1 pt-2">
-                  <p className="text-[0.68rem] text-muted-foreground">
-                    Enter to send · Shift + Enter for a new
-                    line
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    {messages.length > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={handleNewChat}
-                        disabled={loading}
-                        className="rounded-full"
-                      >
-                        <Trash2
-                          className="size-4"
-                          aria-hidden
-                        />
-                        Clear
-                      </Button>
-                    ) : null}
-
-                    <Button
-                      type="submit"
-                      disabled={
-                        !prompt.trim() || loading
-                      }
-                      className="rounded-full"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2
-                            className="size-4 animate-spin"
-                            aria-hidden
-                          />
-                          Thinking…
-                        </>
-                      ) : (
-                        <>
-                          <Send
-                            className="size-4"
-                            aria-hidden
-                          />
-                          Ask TJC AI
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </form>
-
-              <p className="mt-3 text-center text-[0.68rem] text-muted-foreground">
-                TJC AI · Intelligence layer inside TJC OS
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          <p className="mt-2 px-2 text-xs text-muted-foreground">
+            Press Enter to send. Use Shift + Enter for a new line.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
