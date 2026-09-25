@@ -1,14 +1,22 @@
 /**
  * TJC AI Core Contract
  *
- * This file defines the provider-neutral language used by TJC AI.
+ * TJC AI is the permanent AI layer inside TJC OS.
+ *
+ * External AI companies/models are implementation engines.
+ * They are replaceable and must never become the identity of TJC AI.
  *
  * IMPORTANT:
- * TJC OS must never depend directly on OpenAI, Gemini, Claude,
- * OpenRouter, or another AI provider.
- *
- * Providers will implement adapters around this contract later.
+ * TJC OS application features communicate with TJC AI contracts.
+ * They do not communicate directly with Gemini, OpenAI, Claude,
+ * OpenRouter, or another external AI system.
  */
+
+export const TJC_AI_IDENTITY = {
+  id: "tjc-ai",
+  name: "TJC AI",
+  description: "The intelligence layer inside TJC OS.",
+} as const;
 
 export type AIMessageRole =
   | "system"
@@ -37,7 +45,6 @@ export type AICapability =
 export interface AIModelDescriptor {
   id: string;
   label: string;
-  provider: string;
   capabilities: AICapability[];
 }
 
@@ -45,26 +52,19 @@ export interface AIRequest {
   messages: AIMessage[];
 
   /**
-   * Optional model requested by the caller.
+   * Optional model requested by the TJC AI caller.
    *
-   * TJC AI does not assume a permanent model.
-   * Provider routing may choose another compatible model.
+   * TJC AI may route this request to another compatible
+   * model if the requested model is unavailable.
    */
   model?: string;
 
-  /**
-   * Maximum output tokens requested by the caller.
-   * Providers may translate this into their own parameter names.
-   */
   maxOutputTokens?: number;
 
-  /**
-   * Sampling temperature when supported by the selected model.
-   */
   temperature?: number;
 
   /**
-   * Optional metadata used internally by TJC AI.
+   * Internal metadata used by TJC AI.
    */
   metadata?: Record<string, unknown>;
 }
@@ -79,22 +79,16 @@ export interface AIResponse {
   message: AIMessage;
 
   /**
-   * Provider/model information is returned as metadata,
-   * not used as an application dependency.
+   * The model that actually handled the request.
+   *
+   * This is diagnostic metadata, not an application dependency.
    */
   model: string | null;
-  provider: string | null;
 
   usage: AIUsage | null;
 
-  /**
-   * Provider-neutral request identifier when available.
-   */
   requestId: string | null;
 
-  /**
-   * Additional provider-neutral metadata.
-   */
   metadata?: Record<string, unknown>;
 }
 
@@ -107,16 +101,15 @@ export interface AIToolCall {
 export interface AIError {
   code: string;
   message: string;
-
-  /**
-   * True when retrying the same request may succeed.
-   */
   retryable: boolean;
 
   /**
-   * Optional provider/model information for diagnostics.
+   * Internal diagnostic information.
+   *
+   * These fields must not be used to present an external
+   * AI provider as the TJC AI product identity.
    */
-  provider?: string;
+  engine?: string;
   model?: string;
 }
 
