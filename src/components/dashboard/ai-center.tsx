@@ -43,9 +43,8 @@ export function AICenter() {
     null,
   );
 
-  const conversationEndRef = useRef<HTMLDivElement | null>(
-    null,
-  );
+  const conversationEndRef =
+    useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({
@@ -53,7 +52,11 @@ export function AICenter() {
     });
   }, [messages, loading]);
 
-  async function handleSubmit() {
+  async function handleSubmit(
+    event?: React.FormEvent<HTMLFormElement>,
+  ) {
+    event?.preventDefault();
+
     const content = prompt.trim();
 
     if (!content || loading) {
@@ -68,15 +71,21 @@ export function AICenter() {
 
     const nextMessages = [...messages, userMessage];
 
-    setMessages(nextMessages);
+    /*
+     * Clear the composer immediately.
+     *
+     * The message now belongs to the conversation,
+     * not to the typing field.
+     */
     setPrompt("");
+    setMessages(nextMessages);
     setError("");
     setLoading(true);
 
     const result = await requestTjcAi(
-      nextMessages.map(({ role, content }) => ({
+      nextMessages.map(({ role, content: messageContent }) => ({
         role,
-        content,
+        content: messageContent,
       })),
     );
 
@@ -115,7 +124,10 @@ export function AICenter() {
     }
 
     event.preventDefault();
-    void handleSubmit();
+
+    if (!loading && prompt.trim()) {
+      void handleSubmit();
+    }
   }
 
   function handleNewChat() {
@@ -135,6 +147,7 @@ export function AICenter() {
   ) {
     try {
       await navigator.clipboard.writeText(content);
+
       setCopiedId(id);
 
       window.setTimeout(() => {
@@ -242,8 +255,8 @@ export function AICenter() {
               </CardTitle>
 
               <p className="mt-1 text-xs text-muted-foreground">
-                Your conversation stays in this workspace
-                until you start a new chat.
+                Your conversation stays here until you
+                start a new chat.
               </p>
             </div>
 
@@ -418,7 +431,12 @@ export function AICenter() {
                 </div>
               ) : null}
 
-              <div className="rounded-2xl border border-border bg-background p-2">
+              <form
+                onSubmit={(event) =>
+                  void handleSubmit(event)
+                }
+                className="rounded-2xl border border-border bg-background p-2"
+              >
                 <Textarea
                   value={prompt}
                   onChange={(event) =>
@@ -428,6 +446,7 @@ export function AICenter() {
                   placeholder="Message TJC AI..."
                   className="min-h-24 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
                   disabled={loading}
+                  autoComplete="off"
                 />
 
                 <div className="flex flex-wrap items-center justify-between gap-3 px-2 pb-1 pt-2">
@@ -454,8 +473,7 @@ export function AICenter() {
                     ) : null}
 
                     <Button
-                      type="button"
-                      onClick={() => void handleSubmit()}
+                      type="submit"
                       disabled={
                         !prompt.trim() || loading
                       }
@@ -475,13 +493,13 @@ export function AICenter() {
                             className="size-4"
                             aria-hidden
                           />
-                          Send
+                          Ask TJC AI
                         </>
                       )}
                     </Button>
                   </div>
                 </div>
-              </div>
+              </form>
 
               <p className="mt-3 text-center text-[0.68rem] text-muted-foreground">
                 TJC AI · Intelligence layer inside TJC OS
@@ -493,4 +511,3 @@ export function AICenter() {
     </div>
   );
 }
-            
