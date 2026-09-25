@@ -22,3 +22,8 @@ export {
   getAIProvider,
   getConfiguredAIProviders,
 } from "./provider-registry";
+
+export type {
+  AIProviderHealth,
+  AIProviderAdapter,
+} from "./provider-adapter";
