@@ -70,6 +70,31 @@ function isValidMessage(
   );
 }
 
+function shouldRetrieveKnowledge(message: string): boolean {
+  const normalized = message.toLowerCase().normalize("NFKC");
+
+  const knowledgeSignals = [
+    "tjc ai",
+    "tjc os",
+    "tjc",
+    "knowledge base",
+    "trusted knowledge",
+    "temporary knowledge",
+    "verification phrase",
+    "policy",
+    "policies",
+    "business rules",
+    "brand guidelines",
+    "release schedule",
+    "project information",
+    "tjc thulani joseph",
+  ];
+
+  return knowledgeSignals.some((signal) =>
+    normalized.includes(signal)
+  );
+}
+
 function extractLatestUserMessage(
   messages: TJCAdapterMessage[],
 ): string {
@@ -403,22 +428,36 @@ Deno.serve(async (request) => {
       messagesWithoutSystemMessages,
     );
 
-  let knowledgeContext = "";
+let knowledgeContext = "";
 
-  if (latestUserMessage) {
-    const knowledgeResult =
-      await retrieveTJCKnowledge(
-        supabase,
-        latestUserMessage,
-        5,
+if (
+  latestUserMessage &&
+  shouldRetrieveKnowledge(latestUserMessage)
+) {
+  const knowledgeResult =
+    await retrieveTJCKnowledge(
+      supabase,
+      latestUserMessage,
+      5,
+    );
+
+  if (knowledgeResult.error) {
+    console.error(
+      "TJC knowledge retrieval failed; continuing without knowledge context:",
+      knowledgeResult.error,
+    );
+
+    // Knowledge is an optional context layer.
+    // A retrieval failure must never prevent TJC AI
+    // from answering general questions.
+    knowledgeContext = "";
+  } else {
+    knowledgeContext =
+      buildKnowledgeContext(
+        knowledgeResult.data,
       );
-
-    if (knowledgeResult.error) {
-      console.error(
-        "TJC knowledge retrieval failed:",
-        knowledgeResult.error,
-      );
-
+  }
+}
       return jsonResponse(
         {
           data: null,
