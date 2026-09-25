@@ -30,17 +30,18 @@ export interface FieldDef {
 
 export interface ContentSchema {
   resource:
-  | "posts"
-  | "songs"
-  | "videos"
-  | "gallery"
-  | "biography"
-  | "projects"
-  | "homepage_sections"
-  | "social_links"
-  | "ai_knowledge";
+    | "posts"
+    | "songs"
+    | "videos"
+    | "gallery"
+    | "biography"
+    | "projects"
+    | "homepage_sections"
+    | "social_links"
+    | "ai_knowledge";
   label: string;
   singular: string;
+  description?: string;
   /** Media field whose preview drives the card in the manager list. */
   previewField: string;
   fields: FieldDef[];
@@ -292,12 +293,12 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         placeholder: "https://vimeo.com/...",
       },
       {
-  key: "tiktok_url",
-  label: "TikTok",
-  kind: "url",
-  meta: true,
-  placeholder: "https://www.tiktok.com/@creator/video/...",
-},
+        key: "tiktok_url",
+        label: "TikTok",
+        kind: "url",
+        meta: true,
+        placeholder: "https://www.tiktok.com/@creator/video/...",
+      },
     ],
   },
 
@@ -545,7 +546,7 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
     ],
   },
 
-    social_links: {
+  social_links: {
     resource: "social_links",
     label: "Social Links HQ",
     singular: "Social Link",
@@ -591,75 +592,73 @@ export const CONTENT_SCHEMAS: Record<string, ContentSchema> = {
         placeholder: "TJC Thulani Joseph",
       },
       {
-  key: "homepage_quick_link",
-  label: "Show on homepage quick links",
-  kind: "boolean",
-  meta: true,
-},
+        key: "homepage_quick_link",
+        label: "Show on homepage quick links",
+        kind: "boolean",
+        meta: true,
+      },
     ],
-  {
-  resource: "ai_knowledge",
-  label: "AI Knowledge",
-  singular: "Knowledge record",
-  description:
-    "Manage the verified knowledge that TJC AI is allowed to use.",
-  previewField: "thumbnail",
-  fields: [
-    {
-      key: "title",
-      label: "Title",
-      kind: "text",
-      required: true,
-      placeholder: "Example: TJC Identity",
-    },
-    {
-      key: "content",
-      label: "Knowledge",
-      kind: "textarea",
-      required: true,
-      placeholder:
-        "Write the verified knowledge TJC AI should be able to use.",
-    },
-    {
-      key: "category",
-      label: "Category",
-      kind: "text",
-      placeholder:
-        "Identity, Biography, Music, Projects, Brand, Documentation...",
-    },
-    {
-      key: "description",
-      label: "Description",
-      kind: "textarea",
-      placeholder:
-        "Short explanation of what this knowledge record contains.",
-    },
-    {
-      key: "tags",
-      label: "Tags",
-      kind: "text",
-      meta: true,
-      placeholder:
-        "identity, biography, official, tjc",
-    },
-    {
-      key: "source_type",
-      label: "Source type",
-      kind: "text",
-      meta: true,
-      placeholder:
-        "official, dashboard, document, imported",
-    },
-    {
-      key: "source_ref",
-      label: "Source reference",
-      kind: "text",
-      meta: true,
-      placeholder:
-        "Optional source identifier or reference.",
-    },
-  ],
-}
+  },
+
+  ai_knowledge: {
+    resource: "ai_knowledge",
+    label: "AI Knowledge",
+    singular: "Knowledge record",
+    description:
+      "Manage the verified knowledge that TJC AI is allowed to use.",
+    previewField: "thumbnail",
+    fields: [
+      {
+        key: "title",
+        label: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "Example: TJC Identity",
+      },
+      {
+        key: "content",
+        label: "Knowledge",
+        kind: "textarea",
+        required: true,
+        placeholder:
+          "Write the verified knowledge TJC AI should be able to use.",
+      },
+      {
+        key: "category",
+        label: "Category",
+        kind: "text",
+        placeholder:
+          "Identity, Biography, Music, Projects, Brand, Documentation...",
+      },
+      {
+        key: "description",
+        label: "Description",
+        kind: "textarea",
+        placeholder:
+          "Short explanation of what this knowledge record contains.",
+      },
+      {
+        key: "tags",
+        label: "Tags",
+        kind: "text",
+        meta: true,
+        placeholder: "identity, biography, official, tjc",
+      },
+      {
+        key: "source_type",
+        label: "Source type",
+        kind: "text",
+        meta: true,
+        placeholder: "official, dashboard, document, imported",
+      },
+      {
+        key: "source_ref",
+        label: "Source reference",
+        kind: "text",
+        meta: true,
+        placeholder: "Optional source identifier or reference.",
+      },
+    ],
   },
 };
 
