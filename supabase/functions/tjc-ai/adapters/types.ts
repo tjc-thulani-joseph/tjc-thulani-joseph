@@ -32,8 +32,85 @@ export interface TJCAdapterMessage {
   content: string;
 }
 
+/**
+ * Provider-neutral function declaration.
+ *
+ * TJC AI owns this contract.
+ * Individual providers translate it into
+ * their own native function/tool format.
+ */
+export interface TJCAdapterTool {
+  name: string;
+  description: string;
+
+  parameters: {
+    type: "object";
+    properties: Record<
+      string,
+      {
+        type: string;
+        description?: string;
+        enum?: string[];
+        items?: Record<string, unknown>;
+      }
+    >;
+    required?: string[];
+  };
+}
+
+/**
+ * A function call requested by an external
+ * AI engine.
+ *
+ * The engine does NOT execute this call.
+ * TJC AI validates, authorizes and executes it.
+ */
+export interface TJCAdapterToolCall {
+  id: string | null;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+/**
+ * Result of a TJC-owned tool execution.
+ *
+ * This is sent back through the adapter so
+ * the external engine can continue reasoning.
+ */
+export interface TJCAdapterToolResult {
+  id: string | null;
+  name: string;
+  result: Record<string, unknown>;
+}
+
 export interface TJCAdapterRequest {
   messages: TJCAdapterMessage[];
+
+  /**
+   * Tools currently available to TJC AI.
+   *
+   * These are TJC-owned tools.
+   * The adapter only translates them for
+   * the selected external AI engine.
+   */
+  tools?: TJCAdapterTool[];
+
+  /**
+   * Tool calls previously returned by the
+   * external engine during this orchestration turn.
+   *
+   * TJC AI includes these when sending the
+   * corresponding tool results back to the engine.
+   */
+  toolCalls?: TJCAdapterToolCall[];
+
+  /**
+   * Results produced by TJC-owned tools.
+   *
+   * The adapter translates these into the
+   * provider-specific function response format.
+   */
+  toolResults?: TJCAdapterToolResult[];
 
   /**
    * Optional provider-specific model identifier.
@@ -68,6 +145,15 @@ export interface TJCAdapterResponse {
     role: "assistant";
     content: string;
   };
+
+  /**
+   * Tool calls requested by the external engine.
+   *
+   * These are suggestions from the engine only.
+   * TJC AI must validate and authorize them before
+   * any execution occurs.
+   */
+  toolCalls: TJCAdapterToolCall[];
 
   /**
    * Actual engine/model used for this response.
@@ -133,6 +219,11 @@ export interface TJCAdapter {
    * The adapter exposes plain text chunks.
    * Provider-specific streaming formats remain
    * completely inside the adapter.
+   *
+   * Tool orchestration is handled through the
+   * complete-response contract above so that
+   * structured tool calls never get flattened
+   * into plain text.
    */
   generateStream?(
     request: TJCAdapterRequest,
