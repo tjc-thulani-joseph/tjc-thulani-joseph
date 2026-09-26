@@ -24,6 +24,7 @@ interface SpeechRecognitionResultLike {
 }
 
 interface SpeechRecognitionEventLike extends Event {
+  resultIndex: number;
   results: {
     [index: number]: SpeechRecognitionResultLike;
     length: number;
@@ -86,6 +87,14 @@ export function AICenter() {
 
   const recognitionRef =
     useRef<SpeechRecognitionLike | null>(null);
+    const voiceBasePromptRef =
+    useRef("");
+
+  const voiceFinalTranscriptRef =
+    useRef("");
+
+  const voiceInterimTranscriptRef =
+    useRef("");
 
   useEffect(() => {
     const element = conversationRef.current;
@@ -177,8 +186,17 @@ export function AICenter() {
       return;
     }
 
-    const recognition =
+     const recognition =
       new SpeechRecognition();
+
+    voiceBasePromptRef.current =
+      prompt.trim();
+
+    voiceFinalTranscriptRef.current =
+      "";
+
+    voiceInterimTranscriptRef.current =
+      "";
 
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -192,15 +210,13 @@ export function AICenter() {
           "Speak naturally. Your words will appear in the message box.",
       });
     };
-
     recognition.onresult = (
       event: SpeechRecognitionEventLike,
     ) => {
-      let finalTranscript = "";
       let interimTranscript = "";
 
       for (
-        let index = 0;
+        let index = event.resultIndex;
         index < event.results.length;
         index += 1
       ) {
@@ -209,54 +225,58 @@ export function AICenter() {
           result[0]?.transcript ?? "";
 
         if (result.isFinal) {
-          finalTranscript += transcript;
+          const finalText =
+            transcript.trim();
+
+          if (finalText) {
+            voiceFinalTranscriptRef.current =
+              [
+                voiceFinalTranscriptRef.current,
+                finalText,
+              ]
+                .filter(Boolean)
+                .join(" ");
+          }
         } else {
           interimTranscript += transcript;
         }
       }
 
-      const finalText =
-        finalTranscript.trim();
-
-      const interimText =
+      voiceInterimTranscriptRef.current =
         interimTranscript.trim();
 
-      if (finalText) {
-        setPrompt((current) => {
-          const separator =
-            current.trim().length > 0
-              ? " "
-              : "";
+      const combinedText = [
+        voiceBasePromptRef.current,
+        voiceFinalTranscriptRef.current,
+        voiceInterimTranscriptRef.current,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
 
-          return (
-            current.trim() +
-            separator +
-            finalText
-          ).trim();
-        });
-      }
-
-      if (interimText) {
-        setPrompt((current) => {
-          const existing =
-            current.trim();
-
-          if (!existing) {
-            return interimText;
-          }
-
-          return `${existing} ${interimText}`;
-        });
-      }
+      setPrompt(combinedText);
     };
-
+    
     recognition.onerror = (
       event: SpeechRecognitionErrorEventLike,
     ) => {
       handleVoiceError(event);
     };
 
-    recognition.onend = () => {
+        recognition.onend = () => {
+      const finalText = [
+        voiceBasePromptRef.current,
+        voiceFinalTranscriptRef.current,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      setPrompt(finalText);
+
+      voiceInterimTranscriptRef.current =
+        "";
+
       setListening(false);
       recognitionRef.current = null;
     };
