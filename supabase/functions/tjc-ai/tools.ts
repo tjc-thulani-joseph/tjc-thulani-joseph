@@ -634,6 +634,244 @@ const getTJCSiteConfiguration: TJCToolDefinition =
   };
 
 /**
+ * Fourth TJC OS tool.
+ *
+ * This is intentionally read-only.
+ *
+ * It provides TJC AI with an operational overview
+ * of the existing content collections.
+ *
+ * It does not:
+ * - create data
+ * - modify data
+ * - delete data
+ * - publish content
+ * - execute SQL
+ * - access secrets
+ * - return full content bodies
+ * - call external services
+ */
+const getTJCContentOverview: TJCToolDefinition =
+  {
+    name:
+      "get_tjc_content_overview",
+
+    description:
+      "Read a high-level overview of TJC OS content collections, including total active records and published records. Use this when the user asks how much content exists, what content is available, or what is currently published.",
+
+    parameters: {
+      type: "object",
+
+      properties: {},
+
+      required: [],
+    },
+
+    allowedRoles: [
+      "ceo",
+      "admin",
+      "editor",
+    ],
+
+    readOnly: true,
+
+    async execute(
+      argumentsValue,
+      context,
+    ) {
+      /**
+       * This tool currently accepts no arguments.
+       */
+      if (
+        Object.keys(
+          argumentsValue,
+        ).length > 0
+      ) {
+        throw new Error(
+          "get_tjc_content_overview does not accept arguments.",
+        );
+      }
+
+      /**
+       * These are existing TJC OS content
+       * collections verified in the live database.
+       *
+       * We intentionally return collection-level
+       * statistics only, not complete content records.
+       */
+      const collections = [
+        {
+          name: "posts",
+          label: "Posts",
+        },
+        {
+          name: "songs",
+          label: "Songs",
+        },
+        {
+          name: "videos",
+          label: "Videos",
+        },
+        {
+          name: "gallery",
+          label: "Gallery",
+        },
+        {
+          name: "biography",
+          label: "Biography",
+        },
+        {
+          name: "projects",
+          label: "Projects",
+        },
+        {
+          name: "homepage_sections",
+          label: "Homepage Sections",
+        },
+        {
+          name: "social_links",
+          label: "Social Links",
+        },
+        {
+          name: "media_library",
+          label: "Media Library",
+        },
+      ];
+
+      /**
+       * Read collection statistics in parallel.
+       *
+       * Every query excludes soft-deleted records.
+       */
+      const results =
+        await Promise.all(
+          collections.map(
+            async (
+              collection,
+            ) => {
+              const {
+                count:
+                  totalCount,
+                error:
+                  totalError,
+              } = await context.supabase
+                .from(
+                  collection.name,
+                )
+                .select(
+                  "id",
+                  {
+                    count:
+                      "exact",
+
+                    head:
+                      true,
+                  },
+                )
+                .is(
+                  "deleted_at",
+                  null,
+                );
+
+              if (
+                totalError
+              ) {
+                throw new Error(
+                  `Unable to read ${collection.name} content count: ${totalError.message}`,
+                );
+              }
+
+              const {
+                count:
+                  publishedCount,
+                error:
+                  publishedError,
+              } = await context.supabase
+                .from(
+                  collection.name,
+                )
+                .select(
+                  "id",
+                  {
+                    count:
+                      "exact",
+
+                    head:
+                      true,
+                  },
+                )
+                .eq(
+                  "status",
+                  "published",
+                )
+                .is(
+                  "deleted_at",
+                  null,
+                );
+
+              if (
+                publishedError
+              ) {
+                throw new Error(
+                  `Unable to read ${collection.name} published count: ${publishedError.message}`,
+                );
+              }
+
+              return {
+                name:
+                  collection.name,
+
+                label:
+                  collection.label,
+
+                total:
+                  totalCount ??
+                  0,
+
+                published:
+                  publishedCount ??
+                  0,
+              };
+            },
+          ),
+        );
+
+      return {
+        collections:
+          results,
+
+        collectionCount:
+          results.length,
+
+        totalActiveRecords:
+          results.reduce(
+            (
+              total,
+              collection,
+            ) =>
+              total +
+              collection.total,
+            0,
+          ),
+
+        totalPublishedRecords:
+          results.reduce(
+            (
+              total,
+              collection,
+            ) =>
+              total +
+              collection.published,
+            0,
+          ),
+
+        readOnly:
+          true,
+      };
+    },
+  };
+
+/**
  * The single source of truth for tools currently
  * exposed to TJC AI.
  *
@@ -654,6 +892,9 @@ const TOOL_REGISTRY: Record<
 
   get_tjc_site_configuration:
     getTJCSiteConfiguration,
+
+    get_tjc_content_overview:
+    getTJCContentOverview,
 };
 
 /**
