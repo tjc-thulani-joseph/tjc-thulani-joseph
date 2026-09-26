@@ -139,14 +139,20 @@ function buildContents(
       parts: request.toolCalls.map(
         (toolCall) => ({
           functionCall: {
-            ...(toolCall.id
-              ? {
-                  id: toolCall.id,
-                }
-              : {}),
-            name: toolCall.name,
-            args: toolCall.arguments,
-          },
+  ...(toolCall.id
+    ? {
+        id: toolCall.id,
+      }
+    : {}),
+  name: toolCall.name,
+  args: toolCall.arguments,
+},
+...(toolCall.thoughtSignature
+  ? {
+      thoughtSignature:
+        toolCall.thoughtSignature,
+    }
+  : {}),
         }),
       ),
     });
@@ -378,21 +384,27 @@ function extractToolCalls(
         : {};
 
     calls.push({
-      id:
-        typeof functionCall.id ===
-          "string"
-          ? functionCall.id
-          : null,
+  id:
+    typeof functionCall.id ===
+      "string"
+      ? functionCall.id
+      : null,
 
-      name:
-        functionCall.name,
+  name:
+    functionCall.name,
 
-      arguments:
-        argumentsObject as Record<
-          string,
-          unknown
-        >,
-    });
+  arguments:
+    argumentsObject as Record<
+      string,
+      unknown
+    >,
+
+  thoughtSignature:
+    typeof part?.thoughtSignature ===
+      "string"
+      ? part.thoughtSignature
+      : null,
+});
   }
 
   return calls;
