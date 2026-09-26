@@ -295,6 +295,183 @@ const getTJCSystemStatus: TJCToolDefinition =
   };
 
 /**
+ * Second TJC OS tool.
+ *
+ * This is intentionally read-only.
+ *
+ * It allows authorized TJC OS administrators
+ * to inspect recent TJC AI tool activity that
+ * has already been recorded in activity_logs.
+ *
+ * It does not:
+ * - create data
+ * - modify data
+ * - delete data
+ * - publish content
+ * - execute SQL
+ * - access secrets
+ * - call external services
+ */
+const getTJCAIActivity: TJCToolDefinition =
+  {
+    name:
+      "get_tjc_ai_activity",
+
+    description:
+      "Read recent TJC AI tool activity from the TJC OS audit log. Use this when the user asks about recent TJC AI tool executions, operational history, or AI tool audit activity.",
+
+    parameters: {
+      type: "object",
+
+      properties: {
+        limit: {
+          type: "integer",
+
+          description:
+            "Maximum number of recent TJC AI activity records to return. Must be between 1 and 25. Defaults to 10.",
+        },
+      },
+
+      required: [],
+    },
+
+    /**
+     * activity_logs is currently readable only
+     * by CEO and admin through the live RLS policy.
+     *
+     * Keep the tool boundary aligned with that
+     * database security boundary.
+     */
+    allowedRoles: [
+      "ceo",
+      "admin",
+    ],
+
+    readOnly: true,
+
+    async execute(
+      argumentsValue,
+      context,
+    ) {
+      const requestedLimit =
+        argumentsValue.limit;
+
+      let limit = 10;
+
+      if (
+        requestedLimit !==
+        undefined
+      ) {
+        if (
+          typeof requestedLimit !==
+            "number" ||
+          !Number.isInteger(
+            requestedLimit,
+          ) ||
+          requestedLimit < 1 ||
+          requestedLimit > 25
+        ) {
+          throw new Error(
+            "get_tjc_ai_activity limit must be an integer between 1 and 25.",
+          );
+        }
+
+        limit =
+          requestedLimit;
+      }
+
+      /**
+       * The query is intentionally restricted
+       * to TJC AI tool audit actions.
+       *
+       * We rely on the live Supabase RLS policy
+       * for the authenticated CEO/admin boundary.
+       */
+      const {
+        data,
+        error,
+        count,
+      } = await context.supabase
+        .from("activity_logs")
+        .select(
+          [
+            "id",
+            "action",
+            "resource",
+            "resource_id",
+            "metadata",
+            "status",
+            "created_at",
+          ].join(","),
+          {
+            count: "exact",
+          },
+        )
+        .like(
+          "action",
+          "ai.tool.%",
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false,
+          },
+        )
+        .limit(
+          limit,
+        );
+
+      if (error) {
+        throw new Error(
+          `Unable to read TJC AI activity: ${error.message}`,
+        );
+      }
+
+      return {
+        activity: (
+          data ?? []
+        ).map(
+          (entry) => ({
+            id:
+              entry.id,
+
+            action:
+              entry.action,
+
+            resource:
+              entry.resource,
+
+            resourceId:
+              entry.resource_id,
+
+            metadata:
+              entry.metadata,
+
+            status:
+              entry.status,
+
+            createdAt:
+              entry.created_at,
+          }),
+        ),
+
+        returned:
+          data?.length ??
+          0,
+
+        matchingRecords:
+          count ??
+          0,
+
+        limit,
+
+        readOnly:
+          true,
+      };
+    },
+  };
+
+/**
  * The single source of truth for tools currently
  * exposed to TJC AI.
  *
@@ -309,6 +486,9 @@ const TOOL_REGISTRY: Record<
 > = {
   get_tjc_system_status:
     getTJCSystemStatus,
+
+  get_tjc_ai_activity:
+    getTJCAIActivity,
 };
 
 /**
