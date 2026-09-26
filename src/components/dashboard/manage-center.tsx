@@ -29,7 +29,7 @@ const MANAGEMENT_AREAS: ManagementArea[] = [
       "Manage TJC AI intelligence, conversation, voice, engines, knowledge and future AI capabilities.",
     icon: Bot,
     status: "available",
-    moduleSlug: "ai",
+    moduleSlug: "ai-management",
   },
   {
     slug: "integrations",
