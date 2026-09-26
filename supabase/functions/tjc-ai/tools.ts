@@ -472,6 +472,168 @@ const getTJCAIActivity: TJCToolDefinition =
   };
 
 /**
+ * Third TJC OS tool.
+ *
+ * This is intentionally read-only.
+ *
+ * It allows authorized TJC OS staff to inspect
+ * the current site-level configuration through
+ * the existing site_configuration table.
+ *
+ * It does not:
+ * - create data
+ * - modify data
+ * - delete data
+ * - publish content
+ * - execute SQL
+ * - access secrets
+ * - call external services
+ */
+const getTJCSiteConfiguration: TJCToolDefinition =
+  {
+    name:
+      "get_tjc_site_configuration",
+
+    description:
+      "Read the current TJC OS site configuration, including the site title, URL, description, category and publication status. Use this when the user asks about the current website configuration or site identity.",
+
+    parameters: {
+      type: "object",
+
+      properties: {},
+
+      required: [],
+    },
+
+    allowedRoles: [
+      "ceo",
+      "admin",
+      "editor",
+    ],
+
+    readOnly: true,
+
+    async execute(
+      argumentsValue,
+      context,
+    ) {
+      /**
+       * This tool currently accepts no arguments.
+       */
+      if (
+        Object.keys(
+          argumentsValue,
+        ).length > 0
+      ) {
+        throw new Error(
+          "get_tjc_site_configuration does not accept arguments.",
+        );
+      }
+
+      /**
+       * Read only the fields that are useful
+       * for TJC AI operational awareness.
+       *
+       * We intentionally do not expose:
+       * - metadata
+       * - internal IDs beyond the configuration ID
+       * - audit ownership fields
+       * - arbitrary database columns
+       */
+      const {
+        data,
+        error,
+      } = await context.supabase
+        .from(
+          "site_configuration",
+        )
+        .select(
+          [
+            "id",
+            "title",
+            "slug",
+            "description",
+            "url",
+            "category",
+            "status",
+            "published_at",
+            "updated_at",
+          ].join(","),
+        )
+        .is(
+          "deleted_at",
+          null,
+        )
+        .order(
+          "updated_at",
+          {
+            ascending: false,
+          },
+        )
+        .limit(
+          1,
+        )
+        .maybeSingle();
+
+      if (error) {
+        throw new Error(
+          `Unable to read TJC site configuration: ${error.message}`,
+        );
+      }
+
+      if (!data) {
+        return {
+          configurationAvailable:
+            false,
+
+          configuration:
+            null,
+
+          readOnly:
+            true,
+        };
+      }
+
+      return {
+        configurationAvailable:
+          true,
+
+        configuration: {
+          id:
+            data.id,
+
+          title:
+            data.title,
+
+          slug:
+            data.slug,
+
+          description:
+            data.description,
+
+          url:
+            data.url,
+
+          category:
+            data.category,
+
+          status:
+            data.status,
+
+          publishedAt:
+            data.published_at,
+
+          updatedAt:
+            data.updated_at,
+        },
+
+        readOnly:
+          true,
+      };
+    },
+  };
+
+/**
  * The single source of truth for tools currently
  * exposed to TJC AI.
  *
@@ -489,6 +651,9 @@ const TOOL_REGISTRY: Record<
 
   get_tjc_ai_activity:
     getTJCAIActivity,
+
+  get_tjc_site_configuration:
+    getTJCSiteConfiguration,
 };
 
 /**
