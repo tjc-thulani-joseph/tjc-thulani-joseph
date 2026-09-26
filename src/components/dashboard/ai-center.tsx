@@ -88,15 +88,34 @@ export function AICenter() {
   const recognitionRef =
     useRef<SpeechRecognitionLike | null>(null);
 
+  /*
+   * Text that existed in the textbox before voice mode started.
+   * This is preserved so voice input can be added to an existing draft.
+   */
   const voiceBasePromptRef =
     useRef("");
 
+  /*
+   * Permanent transcript for the current user voice session.
+   *
+   * IMPORTANT:
+   * This survives browser recognition restarts.
+   */
   const voiceFinalTranscriptRef =
     useRef("");
 
-  const voiceSessionTranscriptRef =
+  /*
+   * Temporary speech currently being recognized.
+   *
+   * This must NEVER be permanently appended until it becomes final.
+   */
+  const voiceInterimTranscriptRef =
     useRef("");
 
+  /*
+   * True only when the user explicitly pressed the microphone
+   * to stop the entire voice session.
+   */
   const voiceUserStopRef =
     useRef(false);
 
@@ -108,6 +127,14 @@ export function AICenter() {
 
   const voiceInitialStartRef =
     useRef(false);
+
+  /*
+   * Each browser recognition object receives a unique session id.
+   * This prevents callbacks from an old recognition object from
+   * modifying the new recognition session.
+   */
+  const voiceRecognitionSessionIdRef =
+    useRef(0);
 
   useEffect(() => {
     const element = conversationRef.current;
@@ -131,6 +158,7 @@ export function AICenter() {
       recognitionRef.current?.abort();
       recognitionRef.current = null;
       voiceRecognitionRunningRef.current = false;
+      voiceRecognitionSessionIdRef.current += 1;
     };
   }, []);
 
@@ -153,16 +181,34 @@ export function AICenter() {
     );
   }
 
-  function finalizeVoiceInput() {
-    const finalText = [
-      voiceBasePromptRef.current,
-      voiceFinalTranscriptRef.current,
-      voiceSessionTranscriptRef.current,
+  function buildVoicePrompt(
+    finalTranscript: string,
+    interimTranscript: string,
+  ) {
+    return [
+      voiceBasePromptRef.current.trim(),
+      finalTranscript.trim(),
+      interimTranscript.trim(),
     ]
-      .map((value) => value.trim())
       .filter(Boolean)
       .join(" ")
       .trim();
+  }
+
+  function updateVoicePrompt() {
+    setPrompt(
+      buildVoicePrompt(
+        voiceFinalTranscriptRef.current,
+        voiceInterimTranscriptRef.current,
+      ),
+    );
+  }
+
+  function finalizeVoiceInput() {
+    const finalText = buildVoicePrompt(
+      voiceFinalTranscriptRef.current,
+      voiceInterimTranscriptRef.current,
+    );
 
     setPrompt(finalText);
 
@@ -170,7 +216,7 @@ export function AICenter() {
 
     voiceBasePromptRef.current = "";
     voiceFinalTranscriptRef.current = "";
-    voiceSessionTranscriptRef.current = "";
+    voiceInterimTranscriptRef.current = "";
   }
 
   function clearVoiceRestartTimer() {
@@ -178,6 +224,7 @@ export function AICenter() {
       window.clearTimeout(
         voiceRestartTimerRef.current,
       );
+
       voiceRestartTimerRef.current = null;
     }
   }
@@ -185,63 +232,414 @@ export function AICenter() {
   function handleVoiceError(
     error: SpeechRecognitionErrorEventLike,
   ) {
+    /*
+     * These errors do not mean the user intentionally stopped.
+     *
+     * "no-speech" commonly occurs when the browser hears nothing
+     * for a period of time. The continuous session should therefore
+     * remain alive and onend will restart recognition.
+     */
     if (error.error === "no-speech") {
       return;
     }
 
+    /*
+     * "aborted" is expected when the user explicitly stops or when
+     * the recognition object is replaced.
+     */
     if (error.error === "aborted") {
       return;
     }
 
-    voiceUserStopRef.current = true;
-    clearVoiceRestartTimer();
-    setListening(false);
+    /*
+     * Permission and hardware failures are different from a normal
+     * browser recognition timeout. These should end the session.
+     */
+    if (
+      error.error === "not-allowed" ||
+      error.error === "service-not-allowed"
+    ) {
+      voiceUserStopRef.current = true;
+      clearVoiceRestartTimer();
+      setListening(false);
 
-    if (error.error === "not-allowed") {
       toast.error("Microphone permission denied", {
         description:
           "Allow microphone access for TJC OS and try again.",
       });
+
       return;
     }
 
     if (error.error === "audio-capture") {
+      voiceUserStopRef.current = true;
+      clearVoiceRestartTimer();
+      setListening(false);
+
       toast.error("Microphone unavailable", {
         description:
           "Check that your device microphone is available.",
       });
+
       return;
     }
 
-    toast.error("Voice input stopped", {
-      description:
-        "TJC OS could not continue listening.",
-    });
+    /*
+     * For other recoverable browser recognition errors, the user's
+     * voice session remains conceptually active. The recognition
+     * lifecycle will be allowed to reach onend and restart.
+     */
+  }
+
+  function startVoiceRecognitionSession() {
+    if (voiceUserStopRef.current) {
+      return;
+    }
+
+    const SpeechRecognition =
+      getSpeechRecognition();
+
+    if (!SpeechRecognition) {
+      voiceUserStopRef.current = true;
+      setListening(false);
+
+      toast.error(
+        "Voice input is not supported in this browser",
+        {
+          description:
+            "Try a browser with speech recognition support.",
+        },
+      );
+
+      return;
+    }
+
+    const sessionId =
+      voiceRecognitionSessionIdRef.current + 1;
+
+    voiceRecognitionSessionIdRef.current =
+      sessionId;
+
+    const recognition =
+      new SpeechRecognition();
+
+    recognition.continuous = true;
+
+    /*
+     * Interim results are required so the textbox can display
+     * speech progressively.
+     *
+     * Interim text is stored separately and is NEVER appended
+     * permanently until the browser marks it as final.
+     */
+    recognition.interimResults = true;
+
+    recognition.lang = "en-ZA";
+
+    recognition.onstart = () => {
+      if (
+        voiceUserStopRef.current ||
+        voiceRecognitionSessionIdRef.current !==
+          sessionId ||
+        recognitionRef.current !== recognition
+      ) {
+        return;
+      }
+
+      voiceRecognitionRunningRef.current = true;
+      setListening(true);
+
+      if (!voiceInitialStartRef.current) {
+        voiceInitialStartRef.current = true;
+
+        toast.success("TJC AI is listening", {
+          description:
+            "Speak naturally. Pause whenever you need. Tap the microphone again when you are completely finished.",
+        });
+      }
+    };
+
+    recognition.onresult = (
+      event: SpeechRecognitionEventLike,
+    ) => {
+      if (
+        voiceUserStopRef.current ||
+        voiceRecognitionSessionIdRef.current !==
+          sessionId ||
+        recognitionRef.current !== recognition
+      ) {
+        return;
+      }
+
+      /*
+       * Only process results from resultIndex onward.
+       *
+       * Browser speech recognition maintains historical results
+       * inside event.results. Processing the entire collection
+       * every time would duplicate previously committed speech.
+       */
+      let newFinalText = "";
+      let newInterimText = "";
+
+      for (
+        let index = event.resultIndex;
+        index < event.results.length;
+        index += 1
+      ) {
+        const result =
+          event.results[index];
+
+        if (!result) {
+          continue;
+        }
+
+        const transcript =
+          result[0]?.transcript?.trim() ?? "";
+
+        if (!transcript) {
+          continue;
+        }
+
+        if (result.isFinal) {
+          newFinalText = [
+            newFinalText,
+            transcript,
+          ]
+            .filter(Boolean)
+            .join(" ");
+        } else {
+          newInterimText = [
+            newInterimText,
+            transcript,
+          ]
+            .filter(Boolean)
+            .join(" ");
+        }
+      }
+
+      /*
+       * Any final result belongs permanently in the session
+       * transcript. It is committed exactly once because we only
+       * process the newly changed result range.
+       */
+      if (newFinalText) {
+        voiceFinalTranscriptRef.current = [
+          voiceFinalTranscriptRef.current.trim(),
+          newFinalText.trim(),
+        ]
+          .filter(Boolean)
+          .join(" ");
+      }
+
+      /*
+       * Interim speech represents the CURRENT unfinished phrase.
+       * It replaces the previous interim text instead of being
+       * appended to it.
+       */
+      voiceInterimTranscriptRef.current =
+        newInterimText;
+
+      updateVoicePrompt();
+    };
+
+    recognition.onerror = (
+      event: SpeechRecognitionErrorEventLike,
+    ) => {
+      if (
+        voiceRecognitionSessionIdRef.current !==
+          sessionId ||
+        recognitionRef.current !== recognition
+      ) {
+        return;
+      }
+
+      handleVoiceError(event);
+    };
+
+    recognition.onend = () => {
+      if (
+        voiceRecognitionSessionIdRef.current !==
+          sessionId ||
+        recognitionRef.current !== recognition
+      ) {
+        return;
+      }
+
+      voiceRecognitionRunningRef.current = false;
+
+      /*
+       * If the user explicitly stopped the voice session,
+       * recognition ending here is the expected final lifecycle
+       * event. Do NOT restart.
+       */
+      if (voiceUserStopRef.current) {
+        finalizeVoiceInput();
+
+        setListening(false);
+
+        recognitionRef.current = null;
+
+        return;
+      }
+
+      /*
+       * Browser recognition ended by itself.
+       *
+       * This is NOT the end of the user's voice session.
+       *
+       * Any interim speech that did not become final cannot safely
+       * be treated as a permanent phrase across recognition
+       * connections, so it is folded into the visible transcript
+       * before restarting.
+       */
+      const interim =
+        voiceInterimTranscriptRef.current.trim();
+
+      if (interim) {
+        voiceFinalTranscriptRef.current = [
+          voiceFinalTranscriptRef.current.trim(),
+          interim,
+        ]
+          .filter(Boolean)
+          .join(" ");
+      }
+
+      voiceInterimTranscriptRef.current = "";
+
+      updateVoicePrompt();
+
+      /*
+       * Keep the microphone UI ON.
+       */
+      setListening(true);
+
+      clearVoiceRestartTimer();
+
+      /*
+       * Create a NEW recognition object on restart rather than
+       * reusing the ended object. This prevents old browser
+       * event.results from being replayed and duplicated.
+       */
+      voiceRestartTimerRef.current =
+        window.setTimeout(() => {
+          voiceRestartTimerRef.current = null;
+
+          if (voiceUserStopRef.current) {
+            return;
+          }
+
+          /*
+           * Invalidate the old recognition session before creating
+           * the next one.
+           */
+          if (
+            recognitionRef.current === recognition
+          ) {
+            recognitionRef.current = null;
+          }
+
+          startVoiceRecognitionSession();
+        }, 150);
+    };
+
+    recognitionRef.current =
+      recognition;
+
+    try {
+      recognition.start();
+    } catch {
+      /*
+       * A browser can reject start() when a previous recognition
+       * lifecycle is still settling. Retry invisibly while the
+       * user's microphone state remains ON.
+       */
+      voiceRecognitionRunningRef.current =
+        false;
+
+      if (
+        voiceUserStopRef.current ||
+        voiceRecognitionSessionIdRef.current !==
+          sessionId
+      ) {
+        return;
+      }
+
+      clearVoiceRestartTimer();
+
+      voiceRestartTimerRef.current =
+        window.setTimeout(() => {
+          voiceRestartTimerRef.current = null;
+
+          if (voiceUserStopRef.current) {
+            return;
+          }
+
+          if (
+            recognitionRef.current === recognition
+          ) {
+            recognitionRef.current = null;
+          }
+
+          startVoiceRecognitionSession();
+        }, 300);
+    }
   }
 
   function toggleVoiceInput() {
     if (loading) return;
 
+    /*
+     * MICROPHONE ON -> OFF
+     *
+     * This is the ONLY normal action that ends the complete
+     * user voice session.
+     */
     if (listening) {
       voiceUserStopRef.current = true;
+
       clearVoiceRestartTimer();
+
+      /*
+       * Invalidate callbacks belonging to the current recognition
+       * object so an asynchronous browser callback cannot restart
+       * the voice session after the user has stopped it.
+       */
+      voiceRecognitionSessionIdRef.current += 1;
 
       const recognition =
         recognitionRef.current;
 
-      if (
-        recognition &&
-        voiceRecognitionRunningRef.current
-      ) {
-        recognition.stop();
-      } else {
-        finalizeVoiceInput();
-        setListening(false);
+      if (recognition) {
+        try {
+          if (
+            voiceRecognitionRunningRef.current
+          ) {
+            recognition.stop();
+          } else {
+            recognition.abort();
+          }
+        } catch {
+          // The recognition lifecycle may already have ended.
+        }
       }
+
+      recognitionRef.current = null;
+      voiceRecognitionRunningRef.current = false;
+
+      /*
+       * Preserve final + interim speech in the textbox.
+       * Nothing is submitted here.
+       */
+      finalizeVoiceInput();
+
+      setListening(false);
 
       return;
     }
 
+    /*
+     * MICROPHONE OFF -> ON
+     */
     const SpeechRecognition =
       getSpeechRecognition();
 
@@ -253,184 +651,32 @@ export function AICenter() {
             "Try a browser with speech recognition support.",
         },
       );
+
       return;
     }
 
-    const recognition =
-      new SpeechRecognition();
-
+    /*
+     * Capture the existing draft exactly once at the beginning
+     * of the complete user voice session.
+     */
     voiceBasePromptRef.current =
       prompt.trim();
 
     voiceFinalTranscriptRef.current = "";
-    voiceSessionTranscriptRef.current = "";
+    voiceInterimTranscriptRef.current = "";
+
     voiceUserStopRef.current = false;
+    voiceInitialStartRef.current = false;
 
     clearVoiceRestartTimer();
 
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = "en-ZA";
+    /*
+     * Make the UI immediately show that the user's continuous
+     * microphone session is active.
+     */
+    setListening(true);
 
-    recognition.onstart = () => {
-      if (
-        voiceUserStopRef.current ||
-        recognitionRef.current !== recognition
-      ) {
-        return;
-      }
-
-      setListening(true);
-      voiceRecognitionRunningRef.current = true;
-
-      if (!voiceInitialStartRef.current) {
-        voiceInitialStartRef.current = true;
-
-        toast.success("TJC AI is listening", {
-          description:
-            "Speak naturally. Tap the microphone again when you are completely finished.",
-        });
-      }
-    };
-
-    recognition.onresult = (
-      event: SpeechRecognitionEventLike,
-    ) => {
-      let sessionTranscript = "";
-
-      for (
-        let index = 0;
-        index < event.results.length;
-        index += 1
-      ) {
-        const result =
-          event.results[index];
-
-        if (!result?.isFinal) {
-          continue;
-        }
-
-        const transcript =
-          result[0]?.transcript?.trim() ?? "";
-
-        if (transcript) {
-          sessionTranscript = [
-            sessionTranscript,
-            transcript,
-          ]
-            .filter(Boolean)
-            .join(" ");
-        }
-      }
-
-      voiceSessionTranscriptRef.current =
-        sessionTranscript;
-    };
-
-    recognition.onerror = (
-      event: SpeechRecognitionErrorEventLike,
-    ) => {
-      handleVoiceError(event);
-    };
-
-    recognition.onend = () => {
-      voiceRecognitionRunningRef.current = false;
-
-      if (
-        recognitionRef.current !== recognition
-      ) {
-        return;
-      }
-
-      const sessionText =
-        voiceSessionTranscriptRef.current.trim();
-
-      if (sessionText) {
-        voiceFinalTranscriptRef.current =
-          sessionText;
-      }
-
-      voiceSessionTranscriptRef.current = "";
-
-      if (voiceUserStopRef.current) {
-        finalizeVoiceInput();
-        setListening(false);
-        recognitionRef.current = null;
-        return;
-      }
-
-      setListening(true);
-
-      clearVoiceRestartTimer();
-
-      voiceRestartTimerRef.current =
-        window.setTimeout(() => {
-          voiceRestartTimerRef.current = null;
-
-          if (
-            voiceUserStopRef.current ||
-            recognitionRef.current !== recognition
-          ) {
-            return;
-          }
-
-          try {
-            recognition.start();
-          } catch {
-            clearVoiceRestartTimer();
-
-            voiceRestartTimerRef.current =
-              window.setTimeout(() => {
-                voiceRestartTimerRef.current =
-                  null;
-
-                if (
-                  voiceUserStopRef.current ||
-                  recognitionRef.current !==
-                    recognition
-                ) {
-                  return;
-                }
-
-                try {
-                  recognition.start();
-                } catch {
-                  voiceUserStopRef.current = true;
-                  setListening(false);
-                  recognitionRef.current = null;
-
-                  toast.error(
-                    "Voice input stopped",
-                    {
-                      description:
-                        "The browser voice service could not reconnect.",
-                    },
-                  );
-                }
-              }, 300);
-          }
-        }, 150);
-    };
-
-    recognitionRef.current =
-      recognition;
-
-    try {
-      recognition.start();
-    } catch {
-      recognitionRef.current = null;
-      voiceRecognitionRunningRef.current = false;
-      voiceUserStopRef.current = true;
-      setListening(false);
-
-      toast.error(
-        "Could not start voice input",
-        {
-          description:
-            "Please try the microphone again.",
-        },
-      );
-    }
+    startVoiceRecognitionSession();
   }
 
   function handleNewChat() {
@@ -445,22 +691,41 @@ export function AICenter() {
 
     if (!content || loading) return;
 
+    /*
+     * Ask TJC AI is always a manual submission.
+     *
+     * If the user presses Send while voice mode is active, stop
+     * the microphone session first, but do not send a partial
+     * transcript accidentally.
+     */
     if (listening) {
       voiceUserStopRef.current = true;
       clearVoiceRestartTimer();
 
+      voiceRecognitionSessionIdRef.current += 1;
+
       const recognition =
         recognitionRef.current;
 
-      if (
-        recognition &&
-        voiceRecognitionRunningRef.current
-      ) {
-        recognition.stop();
-      } else {
-        finalizeVoiceInput();
-        setListening(false);
+      if (recognition) {
+        try {
+          if (
+            voiceRecognitionRunningRef.current
+          ) {
+            recognition.stop();
+          } else {
+            recognition.abort();
+          }
+        } catch {
+          // Recognition may already have ended.
+        }
       }
+
+      recognitionRef.current = null;
+      voiceRecognitionRunningRef.current = false;
+
+      finalizeVoiceInput();
+      setListening(false);
     }
 
     const userMessage =
@@ -783,7 +1048,7 @@ export function AICenter() {
 
           <p className="mt-2 px-2 text-xs text-muted-foreground">
             {listening
-              ? "TJC AI is listening. Tap the microphone again to stop."
+              ? "TJC AI is listening. Pause or breathe naturally. Tap the microphone again to stop."
               : "Press Enter to send. Shift + Enter for a new line. Tap the microphone to speak."}
           </p>
         </div>
