@@ -244,6 +244,16 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
   },
 
   {
+    slug: "ai-management",
+    label: "TJC AI Management",
+    description:
+      "Management console for TJC AI runtime, voice, conversation, knowledge and future intelligence controls.",
+    icon: Bot,
+    group: "System",
+    minRole: "ceo",
+  },
+
+  {
     slug: "automation",
     label: "Automation Center",
     description: "Scheduled and event-driven workflows.",
