@@ -82,6 +82,14 @@ export function AICenter() {
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
 
+  /*
+   * The id of the assistant message currently being spoken.
+   *
+   * null means TJC AI is not currently speaking.
+   */
+  const [speakingMessageId, setSpeakingMessageId] =
+    useState<string | null>(null);
+
   const conversationRef =
     useRef<HTMLDivElement | null>(null);
 
@@ -136,6 +144,25 @@ export function AICenter() {
   const voiceRecognitionSessionIdRef =
     useRef(0);
 
+  /*
+   * The currently active browser speech-synthesis utterance.
+   *
+   * TJC AI uses the browser/device speech engine for spoken
+   * responses. The AI provider never receives or owns this state.
+   */
+  const speechUtteranceRef =
+    useRef<SpeechSynthesisUtterance | null>(null);
+
+  /*
+   * Monotonic id used to invalidate older speech callbacks.
+   *
+   * If the user starts a new response while an older response is
+   * speaking, the older utterance is cancelled and its callbacks
+   * are ignored.
+   */
+  const speechSessionIdRef =
+    useRef(0);
+
   useEffect(() => {
     const element = conversationRef.current;
 
@@ -159,6 +186,20 @@ export function AICenter() {
       recognitionRef.current = null;
       voiceRecognitionRunningRef.current = false;
       voiceRecognitionSessionIdRef.current += 1;
+
+      /*
+       * Stop any speech that may still be playing after the
+       * component is removed.
+       */
+      if (
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window
+      ) {
+        window.speechSynthesis.cancel();
+      }
+
+      speechSessionIdRef.current += 1;
+      speechUtteranceRef.current = null;
     };
   }, []);
 
@@ -244,8 +285,10 @@ export function AICenter() {
 
     const existingWords = existingText.split(/\s+/);
     const incomingWords = incomingText.split(/\s+/);
-    const existingNormalized = normalizeSpeechText(existingText);
-    const incomingNormalized = normalizeSpeechText(incomingText);
+    const existingNormalized =
+      normalizeSpeechText(existingText);
+    const incomingNormalized =
+      normalizeSpeechText(incomingText);
 
     /*
      * Incoming is already completely represented by existing.
@@ -347,14 +390,14 @@ export function AICenter() {
       return incomingText;
     }
 
-    const committedWords = committedText.split(/\s+/);
-    const incomingWords = incomingText.split(/\s+/);
-    const committedNormalized = normalizeSpeechText(
-      committedText,
-    );
-    const incomingNormalized = normalizeSpeechText(
-      incomingText,
-    );
+    const committedWords =
+      committedText.split(/\s+/);
+    const incomingWords =
+      incomingText.split(/\s+/);
+    const committedNormalized =
+      normalizeSpeechText(committedText);
+    const incomingNormalized =
+      normalizeSpeechText(incomingText);
 
     /*
      * Interim is already fully represented by committed speech.
@@ -418,6 +461,213 @@ export function AICenter() {
 
       voiceRestartTimerRef.current = null;
     }
+  }
+
+  /*
+   * Stops the current TJC AI speech immediately.
+   *
+   * speechSynthesis.cancel() removes queued utterances and stops
+   * the currently speaking utterance.
+   */
+  function stopSpeaking() {
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window)
+    ) {
+      setSpeakingMessageId(null);
+      speechUtteranceRef.current = null;
+      return;
+    }
+
+    speechSessionIdRef.current += 1;
+
+    window.speechSynthesis.cancel();
+
+    speechUtteranceRef.current = null;
+    setSpeakingMessageId(null);
+  }
+
+  /*
+   * Selects the best available device voice.
+   *
+   * Preference:
+   *   1. South African English
+   *   2. British English
+   *   3. US English
+   *   4. Any English voice
+   *   5. Device default
+   *
+   * If no matching voice is available, the browser chooses its
+   * suitable default for en-ZA.
+   */
+  function getPreferredSpeechVoice():
+    SpeechSynthesisVoice | undefined {
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window)
+    ) {
+      return undefined;
+    }
+
+    const voices =
+      window.speechSynthesis.getVoices();
+
+    if (voices.length === 0) {
+      return undefined;
+    }
+
+    return (
+      voices.find(
+        (voice) =>
+          voice.lang.toLowerCase() === "en-za",
+      ) ??
+      voices.find(
+        (voice) =>
+          voice.lang
+            .toLowerCase()
+            .startsWith("en-gb"),
+      ) ??
+      voices.find(
+        (voice) =>
+          voice.lang
+            .toLowerCase()
+            .startsWith("en-us"),
+      ) ??
+      voices.find(
+        (voice) =>
+          voice.lang
+            .toLowerCase()
+            .startsWith("en"),
+      ) ??
+      voices.find((voice) => voice.default) ??
+      voices[0]
+    );
+  }
+
+  /*
+   * Speaks one complete TJC AI response.
+   *
+   * IMPORTANT:
+   * This is called only after streaming has completed.
+   * We never call speech synthesis for individual streaming
+   * deltas, which prevents TJC AI from speaking one sentence
+   * repeatedly as tokens arrive.
+   */
+  function speakResponse(
+    content: string,
+    messageId: string,
+  ) {
+    const text = content.trim();
+
+    if (!text) {
+      return;
+    }
+
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window) ||
+      typeof SpeechSynthesisUtterance ===
+        "undefined"
+    ) {
+      toast.error(
+        "Voice playback is not supported",
+        {
+          description:
+            "Your browser or device does not provide speech synthesis.",
+        },
+      );
+
+      return;
+    }
+
+    /*
+     * Invalidate and cancel any previous response before speaking
+     * the new one. This prevents multiple responses from being
+     * queued on top of each other.
+     */
+    speechSessionIdRef.current += 1;
+
+    const sessionId =
+      speechSessionIdRef.current;
+
+    window.speechSynthesis.cancel();
+
+    const utterance =
+      new SpeechSynthesisUtterance(text);
+
+    utterance.lang = "en-ZA";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    const preferredVoice =
+      getPreferredSpeechVoice();
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    speechUtteranceRef.current = utterance;
+    setSpeakingMessageId(messageId);
+
+    utterance.onend = () => {
+      if (
+        speechSessionIdRef.current !==
+        sessionId
+      ) {
+        return;
+      }
+
+      if (
+        speechUtteranceRef.current ===
+        utterance
+      ) {
+        speechUtteranceRef.current = null;
+      }
+
+      setSpeakingMessageId(null);
+    };
+
+    utterance.onerror = (event) => {
+      if (
+        speechSessionIdRef.current !==
+        sessionId
+      ) {
+        return;
+      }
+
+      if (
+        speechUtteranceRef.current ===
+        utterance
+      ) {
+        speechUtteranceRef.current = null;
+      }
+
+      setSpeakingMessageId(null);
+
+      /*
+       * Canceled/interrupted errors are expected when the user
+       * presses Stop or when another response starts speaking.
+       */
+      if (
+        event.error === "canceled" ||
+        event.error === "interrupted"
+      ) {
+        return;
+      }
+
+      toast.error(
+        "TJC AI could not play the voice response",
+        {
+          description:
+            "Check your device audio output and try Listen again.",
+        },
+      );
+    };
+
+    window.speechSynthesis.speak(
+      utterance,
+    );
   }
 
   function handleVoiceError(
@@ -856,6 +1106,8 @@ export function AICenter() {
   function handleNewChat() {
     if (loading || listening) return;
 
+    stopSpeaking();
+
     setMessages([]);
     setPrompt("");
   }
@@ -902,6 +1154,13 @@ export function AICenter() {
       setListening(false);
     }
 
+    /*
+     * Stop any previous TJC AI speech before starting a new
+     * response. This prevents old audio from overlapping with the
+     * new answer.
+     */
+    stopSpeaking();
+
     const userMessage =
       createMessage("user", content);
 
@@ -931,6 +1190,13 @@ export function AICenter() {
 
     setLoading(true);
 
+    /*
+     * Keep a local copy of the complete streamed assistant
+     * response. React state updates are asynchronous, so this local
+     * value is the reliable source used when automatic speech begins.
+     */
+    let assistantResponseText = "";
+
     try {
       const result =
         await streamTjcAi(
@@ -938,6 +1204,9 @@ export function AICenter() {
           {
             onEvent: (event) => {
               if (event.type === "delta") {
+                assistantResponseText +=
+                  event.content;
+
                 setMessages((current) =>
                   current.map((message) =>
                     message.id ===
@@ -992,6 +1261,19 @@ export function AICenter() {
               result.error.message,
           },
         );
+      } else if (
+        assistantResponseText.trim()
+      ) {
+        /*
+         * The AI has finished streaming.
+         *
+         * Only now do we speak the response, preventing token-by-token
+         * speech and preventing repeated audio.
+         */
+        speakResponse(
+          assistantResponseText,
+          assistantMessage.id,
+        );
       }
     } catch (error) {
       setMessages((current) =>
@@ -1029,6 +1311,20 @@ export function AICenter() {
         );
       },
     );
+  }
+
+  function handleListen(
+    content: string,
+    messageId: string,
+  ) {
+    if (
+      speakingMessageId === messageId
+    ) {
+      stopSpeaking();
+      return;
+    }
+
+    speakResponse(content, messageId);
   }
 
   function handleKeyDown(
@@ -1079,7 +1375,7 @@ export function AICenter() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-sm backdrop-blur">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-sm backdrop-blur">
         <div
           ref={conversationRef}
           className="min-h-[420px] flex-1 space-y-5 overflow-y-auto p-5 sm:p-6"
@@ -1109,6 +1405,10 @@ export function AICenter() {
               const isUser =
                 message.role === "user";
 
+              const isSpeaking =
+                speakingMessageId ===
+                message.id;
+
               return (
                 <div
                   key={message.id}
@@ -1135,19 +1435,46 @@ export function AICenter() {
 
                       {!isUser &&
                       message.content ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleCopy(
-                              message.content,
-                            )
-                          }
-                          className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                          aria-label="Copy response"
-                          title="Copy response"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleListen(
+                                message.content,
+                                message.id,
+                              )
+                            }
+                            className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                            aria-label={
+                              isSpeaking
+                                ? "Stop speaking"
+                                : "Listen to response"
+                            }
+                            title={
+                              isSpeaking
+                                ? "Stop"
+                                : "Listen"
+                            }
+                          >
+                            {isSpeaking
+                              ? "Stop"
+                              : "Listen"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopy(
+                                message.content,
+                              )
+                            }
+                            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                            aria-label="Copy response"
+                            title="Copy response"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
                       ) : null}
                     </div>
                   </div>
@@ -1223,10 +1550,12 @@ export function AICenter() {
           <p className="mt-2 px-2 text-xs text-muted-foreground">
             {listening
               ? "TJC AI is listening. Pause or breathe naturally. Tap the microphone again to stop."
-              : "Press Enter to send. Shift + Enter for a new line. Tap the microphone to speak."}
+              : speakingMessageId
+                ? "TJC AI is speaking. Use Stop on the response to interrupt it."
+                : "Press Enter to send. Shift + Enter for a new line. Tap the microphone to speak."}
           </p>
         </div>
       </div>
     </div>
   );
-}
+              }
