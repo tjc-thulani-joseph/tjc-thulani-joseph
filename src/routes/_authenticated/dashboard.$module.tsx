@@ -10,6 +10,7 @@ import { ActivityLogsManager } from "@/components/dashboard/activity-logs-manage
 import { SiteSettingsManager } from "@/components/dashboard/site-settings-manager";
 import { ContentManager } from "@/components/dashboard/content-manager";
 import { AICenter } from "@/components/dashboard/ai-center";
+import { AIManagement } from "@/components/dashboard/ai-management";
 import { getContentSchema } from "@/config/content-schemas";
 import { useAuth } from "@/contexts/auth-context";
 import { ManageCenter } from "@/components/dashboard/manage-center";
@@ -60,17 +61,21 @@ function ModulePage() {
       </div>
     );
   }
-  
+
   if (module.slug === "manage-center") {
     return <ManageCenter />;
-}
-  
+  }
+
   if (module.slug === "overview") {
     return <OverviewModule />;
   }
 
   if (module.slug === "media") {
     return <MediaLibrary />;
+  }
+
+  if (module.slug === "ai-management") {
+    return <AIManagement />;
   }
 
   if (module.slug === "ai") {
