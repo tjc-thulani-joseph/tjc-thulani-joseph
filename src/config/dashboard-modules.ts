@@ -36,14 +36,16 @@ export interface DashboardModule {
 
 export const DASHBOARD_MODULES: DashboardModule[] = [
   {
-      {
     slug: "manage-center",
     label: "TJC Manage Center",
-    description: "Central management layer for TJC OS configuration and operations.",
+    description:
+      "Central management layer for TJC OS configuration and operations.",
     icon: Settings,
     group: "System",
     minRole: "ceo",
   },
+
+  {
     slug: "overview",
     label: "overview os",
     description: "System status and quick actions across TJC OS.",
