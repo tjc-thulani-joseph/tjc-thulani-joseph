@@ -65,10 +65,21 @@ export interface TJCAdapterTool {
  * The engine does NOT execute this call.
  * TJC AI validates, authorizes and executes it.
  */
+
 export interface TJCAdapterToolCall {
   id: string | null;
   name: string;
   arguments: Record<string, unknown>;
+
+  /**
+   * Gemini 3 thought signature returned with
+   * functionCall parts.
+   *
+   * TJC AI preserves this provider-specific
+   * continuation metadata without treating it
+   * as part of TJC AI identity or state.
+   */
+  thoughtSignature?: string | null;
 }
 
 /**
