@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Bot,
   Copy,
   Mic,
   MicOff,
@@ -80,13 +87,10 @@ export function AICenter() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
   const [listening, setListening] = useState(false);
-
-  /*
-   * The id of the assistant message currently being spoken.
-   *
-   * null means TJC AI is not currently speaking.
-   */
+  const [voiceAssistantEnabled, setVoiceAssistantEnabled] =
+    useState(false);
   const [speakingMessageId, setSpeakingMessageId] =
     useState<string | null>(null);
 
@@ -96,72 +100,33 @@ export function AICenter() {
   const recognitionRef =
     useRef<SpeechRecognitionLike | null>(null);
 
-  /*
-   * Text that existed in the textbox before voice mode started.
-   * This is preserved so voice input can be added to an existing draft.
-   */
-  const voiceBasePromptRef =
-    useRef("");
-
-  /*
-   * Permanent transcript for the current user voice session.
-   *
-   * IMPORTANT:
-   * This survives browser recognition restarts.
-   */
-  const voiceFinalTranscriptRef =
-    useRef("");
-
-  /*
-   * Temporary speech currently being recognized.
-   *
-   * This must NEVER be permanently appended until it becomes final.
-   */
-  const voiceInterimTranscriptRef =
-    useRef("");
-
-  /*
-   * True only when the user explicitly pressed the microphone
-   * to stop the entire voice session.
-   */
-  const voiceUserStopRef =
-    useRef(false);
-
+  const voiceBasePromptRef = useRef("");
+  const voiceFinalTranscriptRef = useRef("");
+  const voiceInterimTranscriptRef = useRef("");
+  const voiceUserStopRef = useRef(false);
   const voiceRestartTimerRef =
     useRef<number | null>(null);
-
   const voiceRecognitionRunningRef =
     useRef(false);
+  const voiceInitialStartRef = useRef(false);
+  const voiceRecognitionSessionIdRef = useRef(0);
 
-  const voiceInitialStartRef =
+  /*
+   * Conversational voice state.
+   *
+   * TJC AI never listens while its own speech is playing.
+   * The microphone is restarted only after speech synthesis ends.
+   */
+  const voiceAssistantEnabledRef =
+    useRef(false);
+  const voiceTurnSilenceTimerRef =
+    useRef<number | null>(null);
+  const voiceAssistantSubmittingRef =
     useRef(false);
 
-  /*
-   * Each browser recognition object receives a unique session id.
-   * This prevents callbacks from an old recognition object from
-   * modifying the new recognition session.
-   */
-  const voiceRecognitionSessionIdRef =
-    useRef(0);
-
-  /*
-   * The currently active browser speech-synthesis utterance.
-   *
-   * TJC AI uses the browser/device speech engine for spoken
-   * responses. The AI provider never receives or owns this state.
-   */
   const speechUtteranceRef =
     useRef<SpeechSynthesisUtterance | null>(null);
-
-  /*
-   * Monotonic id used to invalidate older speech callbacks.
-   *
-   * If the user starts a new response while an older response is
-   * speaking, the older utterance is cancelled and its callbacks
-   * are ignored.
-   */
-  const speechSessionIdRef =
-    useRef(0);
+  const speechSessionIdRef = useRef(0);
 
   useEffect(() => {
     const element = conversationRef.current;
@@ -172,8 +137,18 @@ export function AICenter() {
   }, [messages]);
 
   useEffect(() => {
+    voiceAssistantEnabledRef.current =
+      voiceAssistantEnabled;
+  }, [voiceAssistantEnabled]);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
     return () => {
       voiceUserStopRef.current = true;
+      voiceAssistantEnabledRef.current = false;
 
       if (voiceRestartTimerRef.current !== null) {
         window.clearTimeout(
@@ -182,15 +157,20 @@ export function AICenter() {
         voiceRestartTimerRef.current = null;
       }
 
+      if (
+        voiceTurnSilenceTimerRef.current !== null
+      ) {
+        window.clearTimeout(
+          voiceTurnSilenceTimerRef.current,
+        );
+        voiceTurnSilenceTimerRef.current = null;
+      }
+
       recognitionRef.current?.abort();
       recognitionRef.current = null;
       voiceRecognitionRunningRef.current = false;
       voiceRecognitionSessionIdRef.current += 1;
 
-      /*
-       * Stop any speech that may still be playing after the
-       * component is removed.
-       */
       if (
         typeof window !== "undefined" &&
         "speechSynthesis" in window
@@ -204,7 +184,10 @@ export function AICenter() {
   }, []);
 
   const canSend = useMemo(
-    () => prompt.trim().length > 0 && !loading,
+    () =>
+      prompt.trim().length > 0 &&
+      !loading &&
+      !voiceAssistantSubmittingRef.current,
     [prompt, loading],
   );
 
@@ -236,11 +219,6 @@ export function AICenter() {
       .trim();
   }
 
-  /*
-   * Normalizes speech only for comparison.
-   *
-   * The visible transcript is NOT lowercased or otherwise rewritten.
-   */
   function normalizeSpeechText(text: string) {
     return text
       .trim()
@@ -248,26 +226,6 @@ export function AICenter() {
       .toLowerCase();
   }
 
-  /*
-   * Adds only genuinely new speech.
-   *
-   * Examples:
-   *
-   * existing: "Bro"
-   * incoming: "Bro I want to go"
-   * result:   "Bro I want to go"
-   *
-   * existing: "Bro I want to go"
-   * incoming: "I want to go"
-   * result:   "Bro I want to go"
-   *
-   * existing: "Bro I want to go"
-   * incoming: "with you"
-   * result:   "Bro I want to go with you"
-   *
-   * This prevents cumulative browser hypotheses from being appended
-   * as if they were new speech.
-   */
   function appendSpeechDelta(
     existing: string,
     incoming: string,
@@ -283,16 +241,16 @@ export function AICenter() {
       return incomingText;
     }
 
-    const existingWords = existingText.split(/\s+/);
-    const incomingWords = incomingText.split(/\s+/);
+    const existingWords =
+      existingText.split(/\s+/);
+    const incomingWords =
+      incomingText.split(/\s+/);
+
     const existingNormalized =
       normalizeSpeechText(existingText);
     const incomingNormalized =
       normalizeSpeechText(incomingText);
 
-    /*
-     * Incoming is already completely represented by existing.
-     */
     if (
       incomingNormalized === existingNormalized ||
       existingNormalized.startsWith(
@@ -302,10 +260,6 @@ export function AICenter() {
       return existingText;
     }
 
-    /*
-     * Incoming contains the complete existing transcript plus
-     * additional words. Append only those additional words.
-     */
     if (
       incomingNormalized.startsWith(
         existingNormalized + " ",
@@ -313,17 +267,15 @@ export function AICenter() {
     ) {
       return [
         existingText,
-        ...incomingWords.slice(existingWords.length),
+        ...incomingWords.slice(
+          existingWords.length,
+        ),
       ]
         .filter(Boolean)
         .join(" ")
         .trim();
     }
 
-    /*
-     * Protect against partial overlap between the end of the
-     * existing transcript and the beginning of the incoming text.
-     */
     const maxOverlap = Math.min(
       existingWords.length,
       incomingWords.length,
@@ -334,17 +286,21 @@ export function AICenter() {
       overlap > 0;
       overlap -= 1
     ) {
-      const existingSuffix = normalizeSpeechText(
-        existingWords
-          .slice(existingWords.length - overlap)
-          .join(" "),
-      );
+      const existingSuffix =
+        normalizeSpeechText(
+          existingWords
+            .slice(
+              existingWords.length - overlap,
+            )
+            .join(" "),
+        );
 
-      const incomingPrefix = normalizeSpeechText(
-        incomingWords
-          .slice(0, overlap)
-          .join(" "),
-      );
+      const incomingPrefix =
+        normalizeSpeechText(
+          incomingWords
+            .slice(0, overlap)
+            .join(" "),
+        );
 
       if (existingSuffix === incomingPrefix) {
         return [
@@ -357,24 +313,12 @@ export function AICenter() {
       }
     }
 
-    /*
-     * No overlap was found, so this is genuinely new speech.
-     */
     return [existingText, incomingText]
       .filter(Boolean)
       .join(" ")
       .trim();
   }
 
-  /*
-   * Extracts only the unfinished portion of an interim hypothesis.
-   *
-   * Example:
-   *
-   * committed: "Bro I want to go"
-   * interim:   "Bro I want to go with you"
-   * result:    "with you"
-   */
   function extractSpeechDelta(
     committed: string,
     incoming: string,
@@ -394,14 +338,12 @@ export function AICenter() {
       committedText.split(/\s+/);
     const incomingWords =
       incomingText.split(/\s+/);
+
     const committedNormalized =
       normalizeSpeechText(committedText);
     const incomingNormalized =
       normalizeSpeechText(incomingText);
 
-    /*
-     * Interim is already fully represented by committed speech.
-     */
     if (
       incomingNormalized === committedNormalized ||
       committedNormalized.startsWith(
@@ -411,10 +353,6 @@ export function AICenter() {
       return "";
     }
 
-    /*
-     * Interim contains the committed transcript plus a new
-     * unfinished suffix.
-     */
     if (
       incomingNormalized.startsWith(
         committedNormalized + " ",
@@ -438,6 +376,27 @@ export function AICenter() {
     );
   }
 
+  function clearVoiceRestartTimer() {
+    if (voiceRestartTimerRef.current !== null) {
+      window.clearTimeout(
+        voiceRestartTimerRef.current,
+      );
+      voiceRestartTimerRef.current = null;
+    }
+  }
+
+  function clearVoiceTurnSilenceTimer() {
+    if (
+      voiceTurnSilenceTimerRef.current !==
+      null
+    ) {
+      window.clearTimeout(
+        voiceTurnSilenceTimerRef.current,
+      );
+      voiceTurnSilenceTimerRef.current = null;
+    }
+  }
+
   function finalizeVoiceInput() {
     const finalText = buildVoicePrompt(
       voiceFinalTranscriptRef.current,
@@ -447,28 +406,48 @@ export function AICenter() {
     setPrompt(finalText);
 
     voiceInitialStartRef.current = false;
-
     voiceBasePromptRef.current = "";
     voiceFinalTranscriptRef.current = "";
     voiceInterimTranscriptRef.current = "";
   }
 
-  function clearVoiceRestartTimer() {
-    if (voiceRestartTimerRef.current !== null) {
-      window.clearTimeout(
-        voiceRestartTimerRef.current,
-      );
+  function stopRecognitionSession(
+    preservePrompt = true,
+  ) {
+    clearVoiceRestartTimer();
+    clearVoiceTurnSilenceTimer();
 
-      voiceRestartTimerRef.current = null;
+    voiceRecognitionSessionIdRef.current += 1;
+
+    const recognition =
+      recognitionRef.current;
+
+    if (recognition) {
+      try {
+        if (voiceRecognitionRunningRef.current) {
+          recognition.stop();
+        } else {
+          recognition.abort();
+        }
+      } catch {
+        // Browser recognition may already have ended.
+      }
     }
+
+    recognitionRef.current = null;
+    voiceRecognitionRunningRef.current = false;
+
+    if (preservePrompt) {
+      finalizeVoiceInput();
+    } else {
+      voiceBasePromptRef.current = "";
+      voiceFinalTranscriptRef.current = "";
+      voiceInterimTranscriptRef.current = "";
+    }
+
+    setListening(false);
   }
 
-  /*
-   * Stops the current TJC AI speech immediately.
-   *
-   * speechSynthesis.cancel() removes queued utterances and stops
-   * the currently speaking utterance.
-   */
   function stopSpeaking() {
     if (
       typeof window === "undefined" ||
@@ -480,26 +459,11 @@ export function AICenter() {
     }
 
     speechSessionIdRef.current += 1;
-
     window.speechSynthesis.cancel();
-
     speechUtteranceRef.current = null;
     setSpeakingMessageId(null);
   }
 
-  /*
-   * Selects the best available device voice.
-   *
-   * Preference:
-   *   1. South African English
-   *   2. British English
-   *   3. US English
-   *   4. Any English voice
-   *   5. Device default
-   *
-   * If no matching voice is available, the browser chooses its
-   * suitable default for en-ZA.
-   */
   function getPreferredSpeechVoice():
     SpeechSynthesisVoice | undefined {
     if (
@@ -512,47 +476,36 @@ export function AICenter() {
     const voices =
       window.speechSynthesis.getVoices();
 
-    if (voices.length === 0) {
+    if (!voices.length) {
       return undefined;
     }
 
     return (
       voices.find(
         (voice) =>
-          voice.lang.toLowerCase() === "en-za",
+          voice.lang.toLowerCase() ===
+          "en-za",
       ) ??
-      voices.find(
-        (voice) =>
-          voice.lang
-            .toLowerCase()
-            .startsWith("en-gb"),
+      voices.find((voice) =>
+        voice.lang
+          .toLowerCase()
+          .startsWith("en-gb"),
       ) ??
-      voices.find(
-        (voice) =>
-          voice.lang
-            .toLowerCase()
-            .startsWith("en-us"),
+      voices.find((voice) =>
+        voice.lang
+          .toLowerCase()
+          .startsWith("en-us"),
       ) ??
-      voices.find(
-        (voice) =>
-          voice.lang
-            .toLowerCase()
-            .startsWith("en"),
+      voices.find((voice) =>
+        voice.lang
+          .toLowerCase()
+          .startsWith("en"),
       ) ??
       voices.find((voice) => voice.default) ??
       voices[0]
     );
   }
 
-  /*
-   * Speaks one complete TJC AI response.
-   *
-   * IMPORTANT:
-   * This is called only after streaming has completed.
-   * We never call speech synthesis for individual streaming
-   * deltas, which prevents TJC AI from speaking one sentence
-   * repeatedly as tokens arrive.
-   */
   function speakResponse(
     content: string,
     messageId: string,
@@ -576,15 +529,17 @@ export function AICenter() {
             "Your browser or device does not provide speech synthesis.",
         },
       );
-
       return;
     }
 
     /*
-     * Invalidate and cancel any previous response before speaking
-     * the new one. This prevents multiple responses from being
-     * queued on top of each other.
+     * The microphone MUST be stopped before TJC AI speaks.
+     * This prevents TJC AI from hearing its own voice.
      */
+    if (voiceAssistantEnabledRef.current) {
+      stopRecognitionSession(false);
+    }
+
     speechSessionIdRef.current += 1;
 
     const sessionId =
@@ -626,6 +581,24 @@ export function AICenter() {
       }
 
       setSpeakingMessageId(null);
+
+      /*
+       * In conversational mode, listening resumes ONLY
+       * after the complete spoken response has finished.
+       */
+      if (
+        voiceAssistantEnabledRef.current
+      ) {
+        window.setTimeout(() => {
+          if (
+            voiceAssistantEnabledRef.current &&
+            !loadingRef.current &&
+            !voiceAssistantSubmittingRef.current
+          ) {
+            startAssistantListening();
+          }
+        }, 250);
+      }
     };
 
     utterance.onerror = (event) => {
@@ -645,10 +618,6 @@ export function AICenter() {
 
       setSpeakingMessageId(null);
 
-      /*
-       * Canceled/interrupted errors are expected when the user
-       * presses Stop or when another response starts speaking.
-       */
       if (
         event.error === "canceled" ||
         event.error === "interrupted"
@@ -673,41 +642,35 @@ export function AICenter() {
   function handleVoiceError(
     error: SpeechRecognitionErrorEventLike,
   ) {
-    /*
-     * These errors do not mean the user intentionally stopped.
-     *
-     * "no-speech" commonly occurs when the browser hears nothing
-     * for a period of time. The continuous session should therefore
-     * remain alive and onend will restart recognition.
-     */
-    if (error.error === "no-speech") {
+    if (
+      error.error === "no-speech" ||
+      error.error === "aborted"
+    ) {
       return;
     }
 
-    /*
-     * "aborted" is expected when the user explicitly stops or when
-     * the recognition object is replaced.
-     */
-    if (error.error === "aborted") {
-      return;
-    }
-
-    /*
-     * Permission and hardware failures are different from a normal
-     * browser recognition timeout. These should end the session.
-     */
     if (
       error.error === "not-allowed" ||
       error.error === "service-not-allowed"
     ) {
       voiceUserStopRef.current = true;
       clearVoiceRestartTimer();
+      clearVoiceTurnSilenceTimer();
       setListening(false);
 
-      toast.error("Microphone permission denied", {
-        description:
-          "Allow microphone access for TJC OS and try again.",
-      });
+      toast.error(
+        "Microphone permission denied",
+        {
+          description:
+            "Allow microphone access for TJC OS and try again.",
+        },
+      );
+
+      if (
+        voiceAssistantEnabledRef.current
+      ) {
+        setVoiceAssistantEnabled(false);
+      }
 
       return;
     }
@@ -715,24 +678,81 @@ export function AICenter() {
     if (error.error === "audio-capture") {
       voiceUserStopRef.current = true;
       clearVoiceRestartTimer();
+      clearVoiceTurnSilenceTimer();
       setListening(false);
 
-      toast.error("Microphone unavailable", {
-        description:
-          "Check that your device microphone is available.",
-      });
+      toast.error(
+        "Microphone unavailable",
+        {
+          description:
+            "Check that your device microphone is available.",
+        },
+      );
 
+      if (
+        voiceAssistantEnabledRef.current
+      ) {
+        setVoiceAssistantEnabled(false);
+      }
+    }
+  }
+
+  function scheduleAssistantTurnSubmit() {
+    clearVoiceTurnSilenceTimer();
+
+    if (
+      !voiceAssistantEnabledRef.current ||
+      voiceAssistantSubmittingRef.current
+    ) {
       return;
     }
 
     /*
-     * For other recoverable browser recognition errors, the user's
-     * voice session remains conceptually active. The recognition
-     * lifecycle will be allowed to reach onend and restart.
+     * Wait for a natural pause before treating the user's
+     * utterance as a complete turn. This avoids sending every
+     * interim recognition update.
      */
+    voiceTurnSilenceTimerRef.current =
+      window.setTimeout(() => {
+        voiceTurnSilenceTimerRef.current =
+          null;
+
+        if (
+          !voiceAssistantEnabledRef.current ||
+          voiceAssistantSubmittingRef.current
+        ) {
+          return;
+        }
+
+        const content = buildVoicePrompt(
+          voiceFinalTranscriptRef.current,
+          voiceInterimTranscriptRef.current,
+        ).trim();
+
+        if (!content) {
+          return;
+        }
+
+        voiceAssistantSubmittingRef.current =
+          true;
+
+        voiceUserStopRef.current = true;
+        stopRecognitionSession(false);
+
+        setPrompt("");
+
+        void handleSubmitContent(content).finally(
+          () => {
+            voiceAssistantSubmittingRef.current =
+              false;
+          },
+        );
+      }, 1600);
   }
 
-  function startVoiceRecognitionSession() {
+  function startVoiceRecognitionSession(
+    assistantMode = false,
+  ) {
     if (voiceUserStopRef.current) {
       return;
     }
@@ -752,11 +772,16 @@ export function AICenter() {
         },
       );
 
+      if (assistantMode) {
+        setVoiceAssistantEnabled(false);
+      }
+
       return;
     }
 
     const sessionId =
-      voiceRecognitionSessionIdRef.current + 1;
+      voiceRecognitionSessionIdRef.current +
+      1;
 
     voiceRecognitionSessionIdRef.current =
       sessionId;
@@ -765,16 +790,7 @@ export function AICenter() {
       new SpeechRecognition();
 
     recognition.continuous = true;
-
-    /*
-     * Interim results are required so the textbox can display
-     * speech progressively.
-     *
-     * Interim text is stored separately and is NEVER appended
-     * permanently until the browser marks it as final.
-     */
     recognition.interimResults = true;
-
     recognition.lang = "en-ZA";
 
     recognition.onstart = () => {
@@ -787,16 +803,22 @@ export function AICenter() {
         return;
       }
 
-      voiceRecognitionRunningRef.current = true;
+      voiceRecognitionRunningRef.current =
+        true;
       setListening(true);
 
       if (!voiceInitialStartRef.current) {
         voiceInitialStartRef.current = true;
 
-        toast.success("TJC AI is listening", {
-          description:
-            "Speak naturally. Pause whenever you need. Tap the microphone again when you are completely finished.",
-        });
+        if (!assistantMode) {
+          toast.success(
+            "TJC AI is listening",
+            {
+              description:
+                "Speak naturally. Tap the microphone again when you are completely finished.",
+            },
+          );
+        }
       }
     };
 
@@ -812,30 +834,24 @@ export function AICenter() {
         return;
       }
 
-      /*
-       * resultIndex identifies where the browser says a result
-       * changed, but the returned transcript itself may contain
-       * words that were already recognized. Never blindly append
-       * the returned text as a new chunk.
-       *
-       * Final speech is committed through appendSpeechDelta().
-       * Interim speech remains temporary and is replaced each time.
-       */
       let nextInterim = "";
 
       for (
         let index = event.resultIndex;
         index < event.results.length;
         index += 1
-      ) {
-        const result = event.results[index];
+
+          ) {
+        const result =
+          event.results[index];
 
         if (!result) {
           continue;
         }
 
         const transcript =
-          result[0]?.transcript?.trim() ?? "";
+          result[0]?.transcript?.trim() ??
+          "";
 
         if (!transcript) {
           continue;
@@ -855,11 +871,6 @@ export function AICenter() {
         }
       }
 
-      /*
-       * Some recognition engines include already-committed speech
-       * in the current interim hypothesis. Keep only the unfinished
-       * suffix in the temporary interim buffer.
-       */
       voiceInterimTranscriptRef.current =
         extractSpeechDelta(
           voiceFinalTranscriptRef.current,
@@ -867,6 +878,10 @@ export function AICenter() {
         );
 
       updateVoicePrompt();
+
+      if (assistantMode) {
+        scheduleAssistantTurnSubmit();
+      }
     };
 
     recognition.onerror = (
@@ -892,30 +907,22 @@ export function AICenter() {
         return;
       }
 
-      voiceRecognitionRunningRef.current = false;
+      voiceRecognitionRunningRef.current =
+        false;
 
-      /*
-       * If the user explicitly stopped the voice session,
-       * recognition ending here is the expected final lifecycle
-       * event. Do NOT restart.
-       */
       if (voiceUserStopRef.current) {
-        finalizeVoiceInput();
+        if (!assistantMode) {
+          finalizeVoiceInput();
+        }
 
         setListening(false);
-
         recognitionRef.current = null;
-
         return;
       }
 
       /*
-       * Browser recognition ended by itself.
-       *
-       * This is NOT the end of the user's voice session.
-       *
-       * Any interim speech that did not become final is folded into
-       * the permanent transcript using the same deduplication logic.
+       * Browser recognition can end even though the user did
+       * not ask to stop. Preserve the current transcript.
        */
       const interim =
         voiceInterimTranscriptRef.current.trim();
@@ -929,54 +936,61 @@ export function AICenter() {
       }
 
       voiceInterimTranscriptRef.current = "";
-
       updateVoicePrompt();
 
       /*
-       * Keep the microphone UI ON.
+       * In assistant mode, the silence timer decides when the
+       * turn is submitted. Do not restart the microphone while
+       * a turn is already waiting to submit.
        */
-      setListening(true);
+      if (
+        assistantMode &&
+        voiceAssistantEnabledRef.current
+      ) {
+        const content = buildVoicePrompt(
+          voiceFinalTranscriptRef.current,
+          "",
+        ).trim();
 
+        if (content) {
+          scheduleAssistantTurnSubmit();
+          return;
+        }
+      }
+
+      setListening(true);
       clearVoiceRestartTimer();
 
-      /*
-       * Create a NEW recognition object on restart rather than
-       * reusing the ended object. This prevents old browser
-       * event.results from being replayed and duplicated.
-       */
       voiceRestartTimerRef.current =
         window.setTimeout(() => {
           voiceRestartTimerRef.current = null;
 
-          if (voiceUserStopRef.current) {
+          if (
+            voiceUserStopRef.current ||
+            (assistantMode &&
+              !voiceAssistantEnabledRef.current)
+          ) {
             return;
           }
 
-          /*
-           * Invalidate the old recognition session before creating
-           * the next one.
-           */
           if (
-            recognitionRef.current === recognition
+            recognitionRef.current ===
+            recognition
           ) {
             recognitionRef.current = null;
           }
 
-          startVoiceRecognitionSession();
+          startVoiceRecognitionSession(
+            assistantMode,
+          );
         }, 150);
     };
 
-    recognitionRef.current =
-      recognition;
+    recognitionRef.current = recognition;
 
     try {
       recognition.start();
     } catch {
-      /*
-       * A browser can reject start() when a previous recognition
-       * lifecycle is still settling. Retry invisibly while the
-       * user's microphone state remains ON.
-       */
       voiceRecognitionRunningRef.current =
         false;
 
@@ -994,76 +1008,39 @@ export function AICenter() {
         window.setTimeout(() => {
           voiceRestartTimerRef.current = null;
 
-          if (voiceUserStopRef.current) {
+          if (
+            voiceUserStopRef.current ||
+            (assistantMode &&
+              !voiceAssistantEnabledRef.current)
+          ) {
             return;
           }
 
           if (
-            recognitionRef.current === recognition
+            recognitionRef.current ===
+            recognition
           ) {
             recognitionRef.current = null;
           }
 
-          startVoiceRecognitionSession();
+          startVoiceRecognitionSession(
+            assistantMode,
+          );
         }, 300);
     }
   }
 
   function toggleVoiceInput() {
-    if (loading) return;
-
-    /*
-     * MICROPHONE ON -> OFF
-     *
-     * This is the ONLY normal action that ends the complete
-     * user voice session.
-     */
-    if (listening) {
-      voiceUserStopRef.current = true;
-
-      clearVoiceRestartTimer();
-
-      /*
-       * Invalidate callbacks belonging to the current recognition
-       * object so an asynchronous browser callback cannot restart
-       * the voice session after the user has stopped it.
-       */
-      voiceRecognitionSessionIdRef.current += 1;
-
-      const recognition =
-        recognitionRef.current;
-
-      if (recognition) {
-        try {
-          if (
-            voiceRecognitionRunningRef.current
-          ) {
-            recognition.stop();
-          } else {
-            recognition.abort();
-          }
-        } catch {
-          // The recognition lifecycle may already have ended.
-        }
-      }
-
-      recognitionRef.current = null;
-      voiceRecognitionRunningRef.current = false;
-
-      /*
-       * Preserve final + interim speech in the textbox.
-       * Nothing is submitted here.
-       */
-      finalizeVoiceInput();
-
-      setListening(false);
-
+    if (loading || voiceAssistantEnabled) {
       return;
     }
 
-    /*
-     * MICROPHONE OFF -> ON
-     */
+    if (listening) {
+      voiceUserStopRef.current = true;
+      stopRecognitionSession(true);
+      return;
+    }
+
     const SpeechRecognition =
       getSpeechRecognition();
 
@@ -1075,110 +1052,186 @@ export function AICenter() {
             "Try a browser with speech recognition support.",
         },
       );
-
       return;
     }
 
-    /*
-     * Capture the existing draft exactly once at the beginning
-     * of the complete user voice session.
-     */
     voiceBasePromptRef.current =
       prompt.trim();
-
     voiceFinalTranscriptRef.current = "";
     voiceInterimTranscriptRef.current = "";
-
     voiceUserStopRef.current = false;
     voiceInitialStartRef.current = false;
 
     clearVoiceRestartTimer();
+    clearVoiceTurnSilenceTimer();
 
-    /*
-     * Make the UI immediately show that the user's continuous
-     * microphone session is active.
-     */
+    setListening(true);
+    startVoiceRecognitionSession(false);
+  }
+
+  function startAssistantListening() {
+    if (
+      !voiceAssistantEnabledRef.current ||
+      loading ||
+      voiceAssistantSubmittingRef.current ||
+      speakingMessageId !== null
+    ) {
+      return;
+    }
+
+    const SpeechRecognition =
+      getSpeechRecognition();
+
+    if (!SpeechRecognition) {
+      toast.error(
+        "Voice assistant is not supported in this browser",
+        {
+          description:
+            "Try a browser with speech recognition support.",
+        },
+      );
+      setVoiceAssistantEnabled(false);
+      return;
+    }
+
+    stopRecognitionSession(false);
+
+    voiceBasePromptRef.current = "";
+    voiceFinalTranscriptRef.current = "";
+    voiceInterimTranscriptRef.current = "";
+    voiceUserStopRef.current = false;
+    voiceInitialStartRef.current = false;
+
+    clearVoiceRestartTimer();
+    clearVoiceTurnSilenceTimer();
+
+    setPrompt("");
     setListening(true);
 
-    startVoiceRecognitionSession();
+    startVoiceRecognitionSession(true);
+  }
+
+  function disableVoiceAssistant() {
+    voiceAssistantEnabledRef.current = false;
+    voiceUserStopRef.current = true;
+
+    clearVoiceRestartTimer();
+    clearVoiceTurnSilenceTimer();
+
+    stopRecognitionSession(false);
+    stopSpeaking();
+
+    setVoiceAssistantEnabled(false);
+  }
+
+  function toggleVoiceAssistant() {
+    if (voiceAssistantEnabled) {
+      disableVoiceAssistant();
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    const SpeechRecognition =
+      getSpeechRecognition();
+
+    if (!SpeechRecognition) {
+      toast.error(
+        "Voice assistant is not supported in this browser",
+        {
+          description:
+            "Try a browser with speech recognition support.",
+        },
+      );
+      return;
+    }
+
+    voiceAssistantEnabledRef.current = true;
+    voiceUserStopRef.current = false;
+    setVoiceAssistantEnabled(true);
+
+    toast.success(
+      "TJC AI voice assistant is ready",
+      {
+        description:
+          "Speak naturally. TJC AI will answer aloud and listen again after it finishes speaking.",
+      },
+    );
+
+    window.setTimeout(() => {
+      if (
+        voiceAssistantEnabledRef.current
+      ) {
+        startAssistantListening();
+      }
+    }, 150);
   }
 
   function handleNewChat() {
-    if (loading || listening) return;
+    if (loading) return;
+
+    if (voiceAssistantEnabled) {
+      disableVoiceAssistant();
+    } else if (listening) {
+      voiceUserStopRef.current = true;
+      stopRecognitionSession(false);
+    }
 
     stopSpeaking();
-
     setMessages([]);
     setPrompt("");
   }
 
-  async function handleSubmit() {
-    const content = prompt.trim();
+  async function handleSubmitContent(
+    content: string,
+  ) {
+    const cleanContent = content.trim();
 
-    if (!content || loading) return;
-
-    /*
-     * Ask TJC AI is always a manual submission.
-     *
-     * If the user presses Send while voice mode is active, stop
-     * the microphone session first, but do not send a partial
-     * transcript accidentally.
-     */
-    if (listening) {
-      voiceUserStopRef.current = true;
-      clearVoiceRestartTimer();
-
-      voiceRecognitionSessionIdRef.current += 1;
-
-      const recognition =
-        recognitionRef.current;
-
-      if (recognition) {
-        try {
-          if (
-            voiceRecognitionRunningRef.current
-          ) {
-            recognition.stop();
-          } else {
-            recognition.abort();
-          }
-        } catch {
-          // Recognition may already have ended.
-        }
-      }
-
-      recognitionRef.current = null;
-      voiceRecognitionRunningRef.current = false;
-
-      finalizeVoiceInput();
-      setListening(false);
+    if (
+      !cleanContent ||
+      loading
+    ) {
+      return;
     }
 
-    /*
-     * Stop any previous TJC AI speech before starting a new
-     * response. This prevents old audio from overlapping with the
-     * new answer.
-     */
+    if (listening) {
+      voiceUserStopRef.current = true;
+      stopRecognitionSession(false);
+    }
+
     stopSpeaking();
 
     const userMessage =
-      createMessage("user", content);
+      createMessage(
+        "user",
+        cleanContent,
+      );
 
     const assistantMessage =
-      createMessage("assistant", "");
+      createMessage(
+        "assistant",
+        "",
+      );
 
-    const conversationMessages: AIMessage[] = [
-      ...messages.map(
-        ({ role, content: messageContent }) => ({
-          role,
-          content: messageContent,
-        }),
-      ),
-      {
-        role: userMessage.role,
-        content: userMessage.content,
-      },
-    ];
+    const conversationMessages: AIMessage[] =
+      [
+        ...messages.map(
+          ({
+            role,
+            content: messageContent,
+          }) => ({
+            role,
+            content: messageContent,
+          }),
+        ),
+        {
+          role: userMessage.role,
+          content:
+            userMessage.content,
+        },
+      ];
 
     setPrompt("");
 
@@ -1189,12 +1242,8 @@ export function AICenter() {
     ]);
 
     setLoading(true);
+    loadingRef.current = true;
 
-    /*
-     * Keep a local copy of the complete streamed assistant
-     * response. React state updates are asynchronous, so this local
-     * value is the reliable source used when automatic speech begins.
-     */
     let assistantResponseText = "";
 
     try {
@@ -1203,34 +1252,41 @@ export function AICenter() {
           conversationMessages,
           {
             onEvent: (event) => {
-              if (event.type === "delta") {
+              if (
+                event.type === "delta"
+              ) {
                 assistantResponseText +=
                   event.content;
 
-                setMessages((current) =>
-                  current.map((message) =>
-                    message.id ===
-                    assistantMessage.id
-                      ? {
-                          ...message,
-                          content:
-                            message.content +
-                            event.content,
-                        }
-                      : message,
-                  ),
+                setMessages(
+                  (current) =>
+                    current.map(
+                      (message) =>
+                        message.id ===
+                        assistantMessage.id
+                          ? {
+                              ...message,
+                              content:
+                                message.content +
+                                event.content,
+                            }
+                          : message,
+                    ),
                 );
 
                 return;
               }
 
-              if (event.type === "error") {
-                setMessages((current) =>
-                  current.filter(
-                    (message) =>
-                      message.id !==
-                      assistantMessage.id,
-                  ),
+              if (
+                event.type === "error"
+              ) {
+                setMessages(
+                  (current) =>
+                    current.filter(
+                      (message) =>
+                        message.id !==
+                        assistantMessage.id,
+                    ),
                 );
 
                 toast.error(
@@ -1246,12 +1302,13 @@ export function AICenter() {
         );
 
       if (result.error) {
-        setMessages((current) =>
-          current.filter(
-            (message) =>
-              message.id !==
-              assistantMessage.id,
-          ),
+        setMessages(
+          (current) =>
+            current.filter(
+              (message) =>
+                message.id !==
+                assistantMessage.id,
+            ),
         );
 
         toast.error(
@@ -1264,24 +1321,19 @@ export function AICenter() {
       } else if (
         assistantResponseText.trim()
       ) {
-        /*
-         * The AI has finished streaming.
-         *
-         * Only now do we speak the response, preventing token-by-token
-         * speech and preventing repeated audio.
-         */
         speakResponse(
           assistantResponseText,
           assistantMessage.id,
         );
       }
     } catch (error) {
-      setMessages((current) =>
-        current.filter(
-          (message) =>
-            message.id !==
-            assistantMessage.id,
-        ),
+      setMessages(
+        (current) =>
+          current.filter(
+            (message) =>
+              message.id !==
+              assistantMessage.id,
+          ),
       );
 
       toast.error(
@@ -1295,22 +1347,40 @@ export function AICenter() {
       );
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }
 
+  async function handleSubmit() {
+    const content = prompt.trim();
+
+    if (!content || loading) {
+      return;
+    }
+
+    if (listening) {
+      voiceUserStopRef.current = true;
+      stopRecognitionSession(true);
+    }
+
+    await handleSubmitContent(content);
+  }
+
   function handleCopy(content: string) {
-    void navigator.clipboard.writeText(content).then(
-      () => {
-        toast.success(
-          "Copied to clipboard",
-        );
-      },
-      () => {
-        toast.error(
-          "Could not copy response",
-        );
-      },
-    );
+    void navigator.clipboard
+      .writeText(content)
+      .then(
+        () => {
+          toast.success(
+            "Copied to clipboard",
+          );
+        },
+        () => {
+          toast.error(
+            "Could not copy response",
+          );
+        },
+      );
   }
 
   function handleListen(
@@ -1324,11 +1394,14 @@ export function AICenter() {
       return;
     }
 
-    speakResponse(content, messageId);
+    speakResponse(
+      content,
+      messageId,
+    );
   }
 
   function handleKeyDown(
-    event: React.KeyboardEvent<HTMLTextAreaElement>,
+    event: KeyboardEvent<HTMLTextAreaElement>,
   ) {
     if (
       event.key === "Enter" &&
@@ -1366,7 +1439,7 @@ export function AICenter() {
           <button
             type="button"
             onClick={handleNewChat}
-            disabled={loading || listening}
+            disabled={loading}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
@@ -1375,7 +1448,7 @@ export function AICenter() {
         </div>
       </div>
 
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-sm backdrop-blur">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-sm backdrop-blur">
         <div
           ref={conversationRef}
           className="min-h-[420px] flex-1 space-y-5 overflow-y-auto p-5 sm:p-6"
@@ -1485,77 +1558,64 @@ export function AICenter() {
         </div>
 
         <div className="border-t border-border/60 p-4 sm:p-5">
-          <div className="flex items-end gap-3 rounded-2xl border border-border/70 bg-background/70 p-2">
+          <div className="flex items-end gap-2 rounded-2xl border border-border/70 bg-background/70 p-2">
             <textarea
               value={prompt}
               onChange={(event) =>
                 setPrompt(event.target.value)
               }
               onKeyDown={handleKeyDown}
-              disabled={loading}
+              disabled={
+                loading ||
+                voiceAssistantEnabled
+              }
               rows={1}
               placeholder={
-                listening
-                  ? "Listening..."
-                  : "Message TJC AI..."
+                voiceAssistantEnabled
+                  ? "Voice assistant is listening..."
+                  : listening
+                    ? "Listening..."
+                    : "Message TJC AI..."
               }
               className="min-h-[46px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <button
               type="button"
-              onClick={toggleVoiceInput}
+              onClick={
+                toggleVoiceAssistant
+              }
               disabled={loading}
-              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                listening
-                  ? "bg-red-500 text-white hover:bg-red-600"
+              className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3 transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                voiceAssistantEnabled
+                  ? "bg-gold text-background hover:opacity-90"
                   : "border border-border bg-background text-foreground hover:bg-muted"
               }`}
               aria-label={
-                listening
-                  ? "Stop listening"
-                  : "Start voice input"
+                voiceAssistantEnabled
+                  ? "Stop voice assistant"
+                  : "Start voice assistant"
               }
               title={
-                listening
-                  ? "Stop listening"
-                  : "Voice input"
+                voiceAssistantEnabled
+                  ? "Stop voice assistant"
+                  : "Start voice assistant"
               }
             >
-              {listening ? (
-                <MicOff className="h-5 w-5" />
-              ) : (
-                <Mic className="h-5 w-5" />
-              )}
+              <Bot className="h-5 w-5" />
+
+              <span className="hidden lg:inline text-xs font-semibold">
+                {voiceAssistantEnabled
+                  ? "Voice on"
+                  : "Voice"}
+              </span>
             </button>
 
             <button
               type="button"
-              onClick={() =>
-                void handleSubmit()
+              onClick={toggleVoiceInput}
+              disabled={
+                loading ||
+                voiceAssistantEnabled
               }
-              disabled={!canSend}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-foreground px-4 text-sm font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Send className="h-4 w-4" />
-
-              <span className="hidden sm:inline">
-                {loading
-                  ? "Streaming…"
-                  : "Ask TJC AI"}
-              </span>
-            </button>
-          </div>
-
-          <p className="mt-2 px-2 text-xs text-muted-foreground">
-            {listening
-              ? "TJC AI is listening. Pause or breathe naturally. Tap the microphone again to stop."
-              : speakingMessageId
-                ? "TJC AI is speaking. Use Stop on the response to interrupt it."
-                : "Press Enter to send. Shift + Enter for a new line. Tap the microphone to speak."}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-              }
+ 
