@@ -7,7 +7,7 @@
  * - No API keys belong here.
  * - No provider SDK belongs here.
  * - No provider-specific request/response logic belongs here.
- * - Provider adapters will be added separately.
+ * - Provider adapters are implemented behind the secure server-side AI layer.
  *
  * TJC AI talks to providers through the adapter contract.
  */
@@ -26,61 +26,37 @@ export type AIProviderStatus =
   | "disabled";
 
 export interface AIProviderDefinition {
-  /**
-   * Stable internal TJC identifier.
-   *
-   * This should not change simply because a provider changes
-   * its branding or API implementation.
-   */
+  /** Stable internal TJC identifier. */
   id: AIProviderId;
 
-  /**
-   * Human-readable provider name.
-   */
+  /** Human-readable provider name. */
   label: string;
 
-  /**
-   * Short explanation shown inside TJC AI.
-   */
+  /** Short explanation shown inside TJC AI. */
   description: string;
 
-  /**
-   * Name of the adapter responsible for translating
-   * the TJC AI contract to this provider.
-   *
-   * The adapter does not exist yet.
-   * That is intentionally handled in 7A.3.
-   */
+  /** Server-side adapter responsible for this provider. */
   adapterKey: string;
 
-  /**
-   * Provider capabilities known to TJC.
-   *
-   * This is intentionally descriptive rather than a promise
-   * that every model from the provider supports every capability.
-   */
+  /** Capabilities currently exposed through the reconciled adapter. */
   capabilities: AICapability[];
 
-  /**
-   * Registry-level status.
-   *
-   * Actual credentials and runtime availability will be
-   * handled by the secure server-side AI layer later.
-   */
+  /** Registry-level configuration state, not live health. */
   status: AIProviderStatus;
 }
 
 /**
  * Provider-neutral AI registry.
  *
- * These entries describe the providers TJC is prepared to support.
- * They do not activate any provider.
+ * Gemini is configured through the server-side TJC AI adapter layer.
+ * The other providers remain future integrations until their adapters
+ * and secure runtime configuration are actually implemented.
  */
 export const AI_PROVIDERS: AIProviderDefinition[] = [
   {
     id: "openai",
     label: "OpenAI",
-    description: "AI provider adapter for OpenAI services.",
+    description: "Future AI provider adapter for OpenAI services.",
     adapterKey: "openai",
     capabilities: [
       "text",
@@ -101,27 +77,20 @@ export const AI_PROVIDERS: AIProviderDefinition[] = [
   {
     id: "gemini",
     label: "Google Gemini",
-    description: "AI provider adapter for Google Gemini services.",
+    description:
+      "Current server-side provider adapter used by TJC AI for text generation and streaming.",
     adapterKey: "gemini",
     capabilities: [
       "text",
-      "structured_output",
       "streaming",
-      "vision",
-      "embeddings",
-      "image_generation",
-      "audio",
-      "transcription",
-      "tool_calling",
-      "reasoning",
     ],
-    status: "unconfigured",
+    status: "configured",
   },
 
   {
     id: "claude",
     label: "Anthropic Claude",
-    description: "AI provider adapter for Anthropic Claude services.",
+    description: "Future AI provider adapter for Anthropic Claude services.",
     adapterKey: "claude",
     capabilities: [
       "text",
@@ -137,7 +106,7 @@ export const AI_PROVIDERS: AIProviderDefinition[] = [
   {
     id: "openrouter",
     label: "OpenRouter",
-    description: "Provider gateway adapter for routed AI models.",
+    description: "Future provider gateway adapter for routed AI models.",
     adapterKey: "openrouter",
     capabilities: [
       "text",
@@ -151,9 +120,7 @@ export const AI_PROVIDERS: AIProviderDefinition[] = [
   },
 ];
 
-/**
- * Find one provider by its stable TJC identifier.
- */
+/** Find one provider by its stable TJC identifier. */
 export function getAIProvider(
   id: AIProviderId,
 ): AIProviderDefinition | null {
@@ -161,15 +128,12 @@ export function getAIProvider(
 }
 
 /**
- * Return only providers that are currently enabled at the
- * registry level.
+ * Return only providers configured at the registry level.
  *
- * At this stage none are enabled.
- * Later the secure AI configuration layer will determine
- * runtime availability.
+ * Runtime availability/health remains a server-side concern.
  */
 export function getConfiguredAIProviders(): AIProviderDefinition[] {
   return AI_PROVIDERS.filter(
     (provider) => provider.status === "configured",
   );
-    }
+}
