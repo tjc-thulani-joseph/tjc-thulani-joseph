@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   ArrowRight,
   Bot,
   CheckCircle2,
@@ -119,20 +120,40 @@ export function AIManagement() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div>
-        <p className="text-xs uppercase tracking-[0.28em] text-gold">
-          TJC Manage Center · AI
-        </p>
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <Link
+            to="/dashboard/$module"
+            params={{ module: "manage-center" }}
+            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground transition hover:text-gold"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            Back to TJC Manage Center
+          </Link>
 
-        <h1 className="mt-3 font-display text-3xl font-semibold">
-          TJC AI Management
-        </h1>
+          <p className="mt-6 text-xs uppercase tracking-[0.28em] text-gold">
+            TJC Manage Center · AI
+          </p>
 
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Control and inspect the TJC AI operating layer from one
-          management surface. TJC AI remains the product identity;
-          external AI engines are replaceable runtime adapters.
-        </p>
+          <h1 className="mt-3 font-display text-3xl font-semibold">
+            TJC AI Management
+          </h1>
+
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+            Control and inspect the TJC AI operating layer from one
+            management surface. TJC AI remains the product identity;
+            external AI engines are replaceable runtime adapters.
+          </p>
+        </div>
+
+        <Link
+          to="/dashboard/$module"
+          params={{ module: "manage-center" }}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-foreground transition hover:border-gold/50 hover:text-gold"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          Manage Center
+        </Link>
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-3">
@@ -150,7 +171,7 @@ export function AIManagement() {
 
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             The conversational AI runtime is connected through the
-            secure TJC AI gateway.
+            TJC AI gateway.
           </p>
         </div>
 
@@ -223,54 +244,75 @@ export function AIManagement() {
           </div>
         </ManagementCard>
 
-        <ManagementCard
-          icon={MessageCircle}
-          title="Conversation"
-          description="The actual conversational interface remains in TJC AI Center, including text conversation, streaming responses and the existing conversational loop."
-          status="Available"
-          statusType="available"
+        <Link
+          to="/dashboard/$module"
+          params={{ module: "ai" }}
+          className="block rounded-2xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         >
-          <ManagementLink to="/dashboard/$module" params={{ module: "ai" }}>
-            Open TJC AI Center
-          </ManagementLink>
-        </ManagementCard>
-
-        <ManagementCard
-          icon={Mic}
-          title="Voice"
-          description="Voice interaction is already connected to TJC AI Center. The management layer reports browser capability while the actual voice conversation remains in the working AI interface."
-          status={voiceAvailable ? "Browser ready" : "Use AI Center"}
-          statusType={voiceAvailable ? "active" : "available"}
-        >
-          <div className="space-y-3">
-            <p className="text-xs leading-5 text-muted-foreground">
-              Speech recognition and speech synthesis are both
-              detected in this browser.
-            </p>
-
+          <ManagementCard
+            icon={MessageCircle}
+            title="Conversation"
+            description="The actual conversational interface remains in TJC AI Center, including text conversation, streaming responses and the existing conversational loop."
+            status="Available"
+            statusType="available"
+          >
             <ManagementLink
               to="/dashboard/$module"
               params={{ module: "ai" }}
             >
-              Open voice assistant
+              Open TJC AI Center
             </ManagementLink>
-          </div>
-        </ManagementCard>
+          </ManagementCard>
+        </Link>
 
-        <ManagementCard
-          icon={Database}
-          title="Knowledge"
-          description="TJC AI has a live knowledge layer backed by the TJC OS database. Verified knowledge can be managed separately and supplied to TJC AI when relevant."
-          status="Operational"
-          statusType="active"
+        <Link
+          to="/dashboard/$module"
+          params={{ module: "ai" }}
+          className="block rounded-2xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         >
-          <ManagementLink
-            to="/dashboard/$module"
-            params={{ module: "ai-knowledge" }}
+          <ManagementCard
+            icon={Mic}
+            title="Voice"
+            description="Voice interaction is already connected to TJC AI Center. The management layer reports browser capability while the actual voice conversation remains in the working AI interface."
+            status={voiceAvailable ? "Browser ready" : "Use AI Center"}
+            statusType={voiceAvailable ? "active" : "available"}
           >
-            Manage AI knowledge
-          </ManagementLink>
-        </ManagementCard>
+            <div className="space-y-3">
+              <p className="text-xs leading-5 text-muted-foreground">
+                Speech recognition and speech synthesis are both
+                detected in this browser.
+              </p>
+
+              <ManagementLink
+                to="/dashboard/$module"
+                params={{ module: "ai" }}
+              >
+                Open voice assistant
+              </ManagementLink>
+            </div>
+          </ManagementCard>
+        </Link>
+
+        <Link
+          to="/dashboard/$module"
+          params={{ module: "ai-knowledge" }}
+          className="block rounded-2xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+        >
+          <ManagementCard
+            icon={Database}
+            title="Knowledge"
+            description="TJC AI has a live knowledge layer backed by the TJC OS database. Verified knowledge can be managed separately and supplied to TJC AI when relevant."
+            status="Operational"
+            statusType="active"
+          >
+            <ManagementLink
+              to="/dashboard/$module"
+              params={{ module: "ai-knowledge" }}
+            >
+              Manage AI knowledge
+            </ManagementLink>
+          </ManagementCard>
+        </Link>
 
         <ManagementCard
           icon={Bot}
