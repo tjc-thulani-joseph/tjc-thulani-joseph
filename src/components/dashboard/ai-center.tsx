@@ -92,9 +92,12 @@ export function AICenter() {
 
   const voiceFinalTranscriptRef =
     useRef("");
+  
+  const voiceSessionTranscriptRef =
+  useRef("");
 
-  const voiceInterimTranscriptRef =
-    useRef("");
+const voiceUserStopRef =
+  useRef(false);
 
   useEffect(() => {
     const element = conversationRef.current;
@@ -130,38 +133,37 @@ export function AICenter() {
   }
 
   function handleVoiceError(
-    error: SpeechRecognitionErrorEventLike,
-  ) {
-    setListening(false);
+  error: SpeechRecognitionErrorEventLike,
+) {
+  if (error.error === "no-speech") {
+    // A pause with no speech is not a reason to stop.
+    // onend will restart the recognition service.
+    return;
+  }
 
-    if (error.error === "not-allowed") {
-      toast.error("Microphone permission denied", {
-        description:
-          "Allow microphone access for TJC OS and try again.",
-      });
-      return;
-    }
+  voiceUserStopRef.current = true;
+  setListening(false);
 
-    if (error.error === "no-speech") {
-      toast.info("No speech detected", {
-        description:
-          "Tap the microphone and speak again.",
-      });
-      return;
-    }
-
-    if (error.error === "audio-capture") {
-      toast.error("Microphone unavailable", {
-        description:
-          "Check that your device microphone is available.",
-      });
-      return;
-    }
-
-    toast.error("Voice input stopped", {
+  if (error.error === "not-allowed") {
+    toast.error("Microphone permission denied", {
       description:
-        "TJC OS could not continue listening.",
+        "Allow microphone access for TJC OS and try again.",
     });
+    return;
+  }
+
+  if (error.error === "audio-capture") {
+    toast.error("Microphone unavailable", {
+      description:
+        "Check that your device microphone is available.",
+    });
+    return;
+  }
+
+  toast.error("Voice input stopped", {
+    description:
+      "TJC OS could not continue listening.",
+  });
   }
 
   function toggleVoiceInput() {
@@ -248,22 +250,154 @@ export function AICenter() {
       const combinedText = [
         voiceBasePromptRef.current,
         voiceFinalTranscriptRef.current,
-        voiceInterimTranscriptRef.current,
+        
+function toggleVoiceInput() {
+  if (loading) return;
+
+  if (listening) {
+    voiceUserStopRef.current = true;
+
+    const recognition =
+      recognitionRef.current;
+
+    if (recognition) {
+      recognition.stop();
+    } else {
+      setListening(false);
+    }
+
+    return;
+  }
+
+  const SpeechRecognition =
+    getSpeechRecognition();
+
+  if (!SpeechRecognition) {
+    toast.error(
+      "Voice input is not supported in this browser",
+      {
+        description:
+          "Try a browser with speech recognition support.",
+      },
+    );
+    return;
+  }
+
+  const recognition =
+    new SpeechRecognition();
+
+  voiceBasePromptRef.current =
+    prompt.trim();
+
+  voiceFinalTranscriptRef.current =
+    "";
+
+  voiceSessionTranscriptRef.current =
+    "";
+
+  voiceUserStopRef.current =
+    false;
+
+  recognition.continuous = true;
+
+  /*
+   * Do not show temporary recognition guesses.
+   * We only use final recognition results.
+   */
+  recognition.interimResults = false;
+
+  recognition.lang = "en-ZA";
+
+  recognition.onstart = () => {
+    setListening(true);
+
+    toast.success("TJC AI is listening", {
+      description:
+        "Speak naturally. Tap the microphone again when you are completely finished.",
+    });
+  };
+
+  recognition.onresult = (
+    event: SpeechRecognitionEventLike,
+  ) => {
+    /*
+     * event.results contains the complete recognition
+     * result history for the current recognition session.
+     *
+     * We rebuild the current session transcript instead
+     * of appending resultIndex results repeatedly.
+     */
+    let sessionTranscript = "";
+
+    for (
+      let index = 0;
+      index < event.results.length;
+      index += 1
+    ) {
+      const result =
+        event.results[index];
+
+      if (!result?.isFinal) {
+        continue;
+      }
+
+      const transcript =
+        result[0]?.transcript?.trim() ?? "";
+
+      if (transcript) {
+        sessionTranscript = [
+          sessionTranscript,
+          transcript,
+        ]
+          .filter(Boolean)
+          .join(" ");
+      }
+    }
+
+    voiceSessionTranscriptRef.current =
+      sessionTranscript;
+
+    /*
+     * IMPORTANT:
+     * Do NOT update the textbox while the user is
+     * speaking.
+     *
+     * The complete transcript is committed only when
+     * the user explicitly switches the microphone off.
+     */
+  };
+
+  recognition.onerror = (
+    event: SpeechRecognitionErrorEventLike,
+  ) => {
+    handleVoiceError(event);
+  };
+
+  recognition.onend = () => {
+    const sessionText =
+      voiceSessionTranscriptRef.current.trim();
+
+    /*
+     * Preserve the completed part of this recognition
+     * connection before potentially reconnecting.
+     */
+    if (sessionText) {
+      voiceFinalTranscriptRef.current = [
+        voiceFinalTranscriptRef.current,
+        sessionText,
       ]
         .filter(Boolean)
-        .join(" ")
-        .trim();
+        .join(" ");
+    }
 
-      setPrompt(combinedText);
-    };
-    
-    recognition.onerror = (
-      event: SpeechRecognitionErrorEventLike,
-    ) => {
-      handleVoiceError(event);
-    };
+    voiceSessionTranscriptRef.current =
+      "";
 
-        recognition.onend = () => {
+    /*
+     * If the user explicitly pressed the microphone
+     * button to stop, finalize the complete transcript.
+     */
+    if (voiceUserStopRef.current) {
       const finalText = [
         voiceBasePromptRef.current,
         voiceFinalTranscriptRef.current,
@@ -274,30 +408,91 @@ export function AICenter() {
 
       setPrompt(finalText);
 
-      voiceInterimTranscriptRef.current =
-        "";
-
       setListening(false);
       recognitionRef.current = null;
-    };
 
-    recognitionRef.current = recognition;
-
-    try {
-      recognition.start();
-    } catch {
-      recognitionRef.current = null;
-      setListening(false);
-
-      toast.error(
-        "Could not start voice input",
-        {
-          description:
-            "Please try the microphone again.",
-        },
-      );
+      return;
     }
+
+    /*
+     * The browser recognition service disconnected on
+     * its own. Do NOT interpret that as the user stopping.
+     *
+     * Reconnect automatically while the microphone mode
+     * is still active.
+     */
+    setListening(true);
+
+    window.setTimeout(() => {
+      if (
+        voiceUserStopRef.current ||
+        recognitionRef.current !== recognition
+      ) {
+        return;
+      }
+
+      try {
+        recognition.start();
+      } catch {
+        /*
+         * Some browsers can briefly report an invalid
+         * state during reconnection. Give the service
+         * another short opportunity to reconnect.
+         */
+        window.setTimeout(() => {
+          if (
+            voiceUserStopRef.current ||
+            recognitionRef.current !== recognition
+          ) {
+            return;
+          }
+
+          try {
+            recognition.start();
+          } catch {
+            voiceUserStopRef.current =
+              true;
+
+            setListening(false);
+            recognitionRef.current =
+              null;
+
+            toast.error(
+              "Voice input stopped",
+              {
+                description:
+                  "The browser voice service could not reconnect.",
+              },
+            );
+          }
+        }, 300);
+      }
+    }, 150);
+  };
+
+  recognitionRef.current =
+    recognition;
+
+  try {
+    recognition.start();
+  } catch {
+    recognitionRef.current =
+      null;
+
+    voiceUserStopRef.current =
+      true;
+
+    setListening(false);
+
+    toast.error(
+      "Could not start voice input",
+      {
+        description:
+          "Please try the microphone again.",
+      },
+    );
   }
+      }
 
   function handleNewChat() {
     if (loading || listening) return;
@@ -312,7 +507,8 @@ export function AICenter() {
     if (!content || loading) return;
 
     if (listening) {
-      recognitionRef.current?.stop();
+  voiceUserStopRef.current = true;
+  recognitionRef.current?.stop();
     }
 
     const userMessage =
