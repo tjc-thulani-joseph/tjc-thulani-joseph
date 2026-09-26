@@ -4,6 +4,9 @@ import type {
   TJCAdapterRequest,
   TJCAdapterResult,
   TJCAdapterResponse,
+  TJCAdapterTool,
+  TJCAdapterToolCall,
+  TJCAdapterToolResult,
 } from "./types.ts";
 
 const GEMINI_API_BASE =
@@ -54,10 +57,49 @@ function errorResult<T>(
   };
 }
 
+/**
+ * Convert the provider-neutral TJC tool contract
+ * into Gemini's FunctionDeclaration format.
+ *
+ * TJC owns the tool definition.
+ * Gemini only receives a translated copy.
+ */
+function buildGeminiTools(
+  tools?: TJCAdapterTool[],
+): Array<Record<string, unknown>> | undefined {
+  if (!tools?.length) {
+    return undefined;
+  }
+
+  return [
+    {
+      functionDeclarations: tools.map(
+        (tool) => ({
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        }),
+      ),
+    },
+  ];
+}
+
+/**
+ * Build normal Gemini conversation contents.
+ *
+ * System messages are handled separately through
+ * Gemini's systemInstruction field.
+ *
+ * Tool messages are not sent directly because Gemini
+ * expects functionResponse parts rather than a generic
+ * "tool" role.
+ */
 function buildContents(
   request: TJCAdapterRequest,
-) {
-  const contents = [];
+): Array<Record<string, unknown>> | null {
+  const contents: Array<
+    Record<string, unknown>
+  > = [];
 
   for (const message of request.messages) {
     if (message.role === "system") {
@@ -65,7 +107,7 @@ function buildContents(
     }
 
     if (message.role === "tool") {
-      return null;
+      continue;
     }
 
     contents.push({
@@ -81,7 +123,64 @@ function buildContents(
     });
   }
 
-  return contents;
+  /**
+   * When TJC is continuing a tool-call turn,
+   * reproduce the model's functionCall parts.
+   *
+   * This allows Gemini to understand which calls
+   * produced the results that follow.
+   */
+  if (
+    request.toolCalls &&
+    request.toolCalls.length > 0
+  ) {
+    contents.push({
+      role: "model",
+      parts: request.toolCalls.map(
+        (toolCall) => ({
+          functionCall: {
+            ...(toolCall.id
+              ? {
+                  id: toolCall.id,
+                }
+              : {}),
+            name: toolCall.name,
+            args: toolCall.arguments,
+          },
+        }),
+      ),
+    });
+  }
+
+  /**
+   * Send TJC-owned tool results back to Gemini
+   * using Gemini's FunctionResponse structure.
+   */
+  if (
+    request.toolResults &&
+    request.toolResults.length > 0
+  ) {
+    contents.push({
+      role: "user",
+      parts: request.toolResults.map(
+        (toolResult) => ({
+          functionResponse: {
+            ...(toolResult.id
+              ? {
+                  id: toolResult.id,
+                }
+              : {}),
+            name: toolResult.name,
+            response: toolResult.result,
+          },
+        }),
+      ),
+    });
+  }
+
+  return contents.length > 0
+    ? contents
+    : null;
 }
 
 function getSystemInstruction(
@@ -105,9 +204,11 @@ function getSystemInstruction(
 function buildPayload(
   request: TJCAdapterRequest,
 ): Record<string, unknown> | null {
-  const contents = buildContents(request);
+  const contents = buildContents(
+    request,
+  );
 
-  if (!contents || contents.length === 0) {
+  if (!contents) {
     return null;
   }
 
@@ -129,6 +230,15 @@ function buildPayload(
         },
       ],
     };
+  }
+
+  const tools =
+    buildGeminiTools(
+      request.tools,
+    );
+
+  if (tools) {
+    payload.tools = tools;
   }
 
   const generationConfig: Record<
@@ -165,6 +275,9 @@ function buildPayload(
   return payload;
 }
 
+/**
+ * Extract plain text from all response parts.
+ */
 function extractText(
   body: unknown,
 ): string {
@@ -174,13 +287,21 @@ function extractText(
       any
     > | null;
 
-  const parts =
-    value?.candidates?.[0]
-      ?.content?.parts;
+  const candidates =
+    Array.isArray(
+      value?.candidates,
+    )
+      ? value.candidates
+      : [];
 
-  if (!Array.isArray(parts)) {
-    return "";
-  }
+  const parts = candidates.flatMap(
+    (candidate: any) =>
+      Array.isArray(
+        candidate?.content?.parts,
+      )
+        ? candidate.content.parts
+        : [],
+  );
 
   return parts
     .filter(
@@ -193,6 +314,145 @@ function extractText(
         part.text,
     )
     .join("");
+}
+
+/**
+ * Extract Gemini function calls from every
+ * response part.
+ *
+ * Do not assume the function call is the
+ * last part of the response.
+ */
+function extractToolCalls(
+  body: unknown,
+): TJCAdapterToolCall[] {
+  const value =
+    body as Record<
+      string,
+      any
+    > | null;
+
+  const candidates =
+    Array.isArray(
+      value?.candidates,
+    )
+      ? value.candidates
+      : [];
+
+  const parts = candidates.flatMap(
+    (candidate: any) =>
+      Array.isArray(
+        candidate?.content?.parts,
+      )
+        ? candidate.content.parts
+        : [],
+  );
+
+  const calls: TJCAdapterToolCall[] =
+    [];
+
+  for (const part of parts) {
+    const functionCall =
+      part?.functionCall;
+
+    if (
+      !functionCall ||
+      typeof functionCall.name !==
+        "string" ||
+      !functionCall.name.trim()
+    ) {
+      continue;
+    }
+
+    const argumentsValue =
+      functionCall.args;
+
+    const argumentsObject =
+      argumentsValue &&
+      typeof argumentsValue ===
+        "object" &&
+      !Array.isArray(
+        argumentsValue,
+      )
+        ? argumentsValue
+        : {};
+
+    calls.push({
+      id:
+        typeof functionCall.id ===
+          "string"
+          ? functionCall.id
+          : null,
+
+      name:
+        functionCall.name,
+
+      arguments:
+        argumentsObject as Record<
+          string,
+          unknown
+        >,
+    });
+  }
+
+  return calls;
+}
+
+/**
+ * Extract Gemini usage metadata.
+ */
+function extractUsage(
+  body: any,
+) {
+  const usage =
+    body?.usageMetadata;
+
+  return {
+    inputTokens:
+      typeof usage
+        ?.promptTokenCount ===
+      "number"
+        ? usage.promptTokenCount
+        : null,
+
+    outputTokens:
+      typeof usage
+        ?.candidatesTokenCount ===
+      "number"
+        ? usage.candidatesTokenCount
+        : null,
+
+    totalTokens:
+      typeof usage
+        ?.totalTokenCount ===
+      "number"
+        ? usage.totalTokenCount
+        : null,
+  };
+}
+
+async function parseGeminiError(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const body =
+      await response.json();
+
+    if (
+      typeof body
+        ?.error
+        ?.message ===
+        "string" &&
+      body.error.message.trim()
+    ) {
+      return body.error.message;
+    }
+  } catch {
+    // Ignore error parsing failure.
+  }
+
+  return fallback;
 }
 
 async function* parseGeminiSse(
@@ -237,9 +497,7 @@ async function* parseGeminiSse(
     buffer =
       events.pop() ?? "";
 
-    for (
-      const event of events
-    ) {
+    for (const event of events) {
       const dataLines =
         event
           .split(/\r?\n/)
@@ -333,6 +591,11 @@ const geminiAdapter: TJCAdapter =
 
     label: "Google Gemini",
 
+    /**
+     * Complete-response generation.
+     *
+     * This path supports TJC tool calling.
+     */
     async generate(
       request,
     ): Promise<
@@ -373,12 +636,15 @@ const geminiAdapter: TJCAdapter =
           `${GEMINI_API_BASE}/models/${encodeURIComponent(model)}:generateContent`,
           {
             method: "POST",
+
             headers: {
               "Content-Type":
                 "application/json",
+
               "x-goog-api-key":
                 apiKey,
             },
+
             body: JSON.stringify(
               payload,
             ),
@@ -386,36 +652,24 @@ const geminiAdapter: TJCAdapter =
         );
 
       if (!response.ok) {
-        let message =
-          "The Gemini adapter could not complete the request.";
-
-        try {
-          const body =
-            await response.json();
-
-          if (
-            typeof body
-              ?.error
-              ?.message ===
-              "string" &&
-            body.error.message.trim()
-          ) {
-            message =
-              body.error.message;
-          }
-        } catch {
-          // Ignore error parsing failure.
-        }
+        const message =
+          await parseGeminiError(
+            response,
+            "The Gemini adapter could not complete the request.",
+          );
 
         return errorResult(
           response.status === 429
             ? "adapter_rate_limited"
             : "adapter_request_failed",
+
           message,
+
           response.status ===
             429 ||
             response.status >=
               500,
+
           model,
         );
       }
@@ -426,7 +680,19 @@ const geminiAdapter: TJCAdapter =
       const text =
         extractText(body);
 
-      if (!text.trim()) {
+      const toolCalls =
+        extractToolCalls(
+          body,
+        );
+
+      /**
+       * An empty text response is valid when
+       * Gemini has requested one or more tools.
+       */
+      if (
+        !text.trim() &&
+        toolCalls.length === 0
+      ) {
         return errorResult(
           "empty_adapter_response",
           "TJC AI received no usable response from the Gemini adapter.",
@@ -435,15 +701,16 @@ const geminiAdapter: TJCAdapter =
         );
       }
 
-      const usage =
-        body?.usageMetadata;
-
       return {
         data: {
           message: {
             role: "assistant",
-            content: text,
+
+            content:
+              text,
           },
+
+          toolCalls,
 
           model:
             body?.modelVersion ??
@@ -451,28 +718,10 @@ const geminiAdapter: TJCAdapter =
 
           adapter: "gemini",
 
-          usage: {
-            inputTokens:
-              typeof usage
-                ?.promptTokenCount ===
-              "number"
-                ? usage.promptTokenCount
-                : null,
-
-            outputTokens:
-              typeof usage
-                ?.candidatesTokenCount ===
-              "number"
-                ? usage.candidatesTokenCount
-                : null,
-
-            totalTokens:
-              typeof usage
-                ?.totalTokenCount ===
-              "number"
-                ? usage.totalTokenCount
-                : null,
-          },
+          usage:
+            extractUsage(
+              body,
+            ),
 
           requestId:
             typeof body
@@ -486,6 +735,13 @@ const geminiAdapter: TJCAdapter =
       };
     },
 
+    /**
+     * Streaming remains available for the existing
+     * conversational voice/text path.
+     *
+     * Tool orchestration will use generate()
+     * through the TJC AI orchestration layer.
+     */
     async generateStream(
       request,
     ) {
@@ -504,6 +760,31 @@ const geminiAdapter: TJCAdapter =
       const model =
         request.model?.trim() ||
         getDefaultModel();
+
+      /**
+       * Streaming tool execution is intentionally
+       * not enabled in this first tool-system
+       * checkpoint.
+       *
+       * The complete-response contract is used
+       * for structured tool calls so that function
+       * calls cannot accidentally be flattened into
+       * ordinary text chunks.
+       */
+      if (
+        request.tools?.length ||
+        request.toolCalls?.length ||
+        request.toolResults?.length
+      ) {
+        return errorResult<{
+          stream: AsyncIterable<string>;
+        }>(
+          "tool_streaming_not_supported",
+          "TJC AI tool orchestration currently requires complete-response generation.",
+          false,
+          model,
+        );
+      }
 
       const payload =
         buildPayload(
@@ -526,12 +807,15 @@ const geminiAdapter: TJCAdapter =
           `${GEMINI_API_BASE}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
           {
             method: "POST",
+
             headers: {
               "Content-Type":
                 "application/json",
+
               "x-goog-api-key":
                 apiKey,
             },
+
             body: JSON.stringify(
               payload,
             ),
@@ -539,26 +823,11 @@ const geminiAdapter: TJCAdapter =
         );
 
       if (!response.ok) {
-        let message =
-          "The Gemini adapter could not start the streaming response.";
-
-        try {
-          const body =
-            await response.json();
-
-          if (
-            typeof body
-              ?.error
-              ?.message ===
-              "string" &&
-            body.error.message.trim()
-          ) {
-            message =
-              body.error.message;
-          }
-        } catch {
-          // Ignore error parsing failure.
-        }
+        const message =
+          await parseGeminiError(
+            response,
+            "The Gemini adapter could not start the streaming response.",
+          );
 
         return errorResult<{
           stream: AsyncIterable<string>;
@@ -566,11 +835,14 @@ const geminiAdapter: TJCAdapter =
           response.status === 429
             ? "adapter_rate_limited"
             : "adapter_stream_failed",
+
           message,
+
           response.status ===
             429 ||
             response.status >=
               500,
+
           model,
         );
       }
@@ -582,6 +854,7 @@ const geminiAdapter: TJCAdapter =
               response,
             ),
         },
+
         error: null,
       };
     },
@@ -718,9 +991,11 @@ const geminiAdapter: TJCAdapter =
       return {
         data: {
           available: true,
+
           message:
             "Gemini adapter is available.",
         },
+
         error: null,
       };
     },
