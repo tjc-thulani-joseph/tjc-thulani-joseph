@@ -10,8 +10,9 @@
  * - Engine SDKs never belong here.
  * - Browser code must never contain engine secrets.
  *
- * The first engine we intend to connect is Gemini.
- * That connection will be implemented separately.
+ * Runtime implementation lives behind the secure TJC AI gateway.
+ * This registry describes the currently reconciled runtime state
+ * without exposing provider credentials or provider-specific logic.
  */
 
 import type { AICapability } from "./types";
@@ -25,66 +26,43 @@ export type AIEngineStatus =
   | "disabled";
 
 export interface AIEngineDefinition {
-  /**
-   * Stable internal TJC identifier.
-   */
+  /** Stable internal TJC identifier. */
   id: AIEngineId;
 
-  /**
-   * Internal implementation name.
-   *
-   * This is not the TJC AI product identity.
-   */
+  /** Internal implementation name, not the TJC AI product identity. */
   backend: string;
 
-  /**
-   * Internal description.
-   */
+  /** Internal description. */
   description: string;
 
-  /**
-   * Capabilities available through this engine.
-   */
+  /** Capabilities currently exposed by the reconciled runtime adapter. */
   capabilities: AICapability[];
 
-  /**
-   * Current architecture/configuration state.
-   */
+  /** Current architecture/configuration state. */
   status: AIEngineStatus;
 
-  /**
-   * Whether this engine may be selected as the
-   * default runtime engine.
-   */
+  /** Whether this engine may be selected as the default runtime engine. */
   selectable: boolean;
 }
 
 /**
  * TJC AI engines currently known to the system.
  *
- * Only Gemini is being prepared initially.
- * Additional engines can be added later without
- * changing the TJC AI application contract.
+ * Gemini is currently the active server-side runtime adapter.
+ * Additional engines can be added later without changing the
+ * TJC AI application contract.
  */
 export const AI_ENGINES: AIEngineDefinition[] = [
   {
     id: "gemini",
     backend: "google-gemini",
     description:
-      "Initial backend engine for TJC AI text, multimodal and tool-enabled capabilities.",
+      "Current server-side backend engine for TJC AI text generation and streaming.",
     capabilities: [
       "text",
-      "structured_output",
       "streaming",
-      "vision",
-      "embeddings",
-      "image_generation",
-      "audio",
-      "transcription",
-      "tool_calling",
-      "reasoning",
     ],
-    status: "planned",
+    status: "active",
     selectable: true,
   },
 ];
