@@ -195,6 +195,197 @@ export function AICenter() {
       .trim();
   }
 
+  /*
+   * Normalizes speech only for comparison.
+   *
+   * The visible transcript is NOT lowercased or otherwise rewritten.
+   */
+  function normalizeSpeechText(text: string) {
+    return text
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
+
+  /*
+   * Adds only genuinely new speech.
+   *
+   * Examples:
+   *
+   * existing: "Bro"
+   * incoming: "Bro I want to go"
+   * result:   "Bro I want to go"
+   *
+   * existing: "Bro I want to go"
+   * incoming: "I want to go"
+   * result:   "Bro I want to go"
+   *
+   * existing: "Bro I want to go"
+   * incoming: "with you"
+   * result:   "Bro I want to go with you"
+   *
+   * This prevents cumulative browser hypotheses from being appended
+   * as if they were new speech.
+   */
+  function appendSpeechDelta(
+    existing: string,
+    incoming: string,
+  ) {
+    const existingText = existing.trim();
+    const incomingText = incoming.trim();
+
+    if (!incomingText) {
+      return existingText;
+    }
+
+    if (!existingText) {
+      return incomingText;
+    }
+
+    const existingWords = existingText.split(/\s+/);
+    const incomingWords = incomingText.split(/\s+/);
+    const existingNormalized = normalizeSpeechText(existingText);
+    const incomingNormalized = normalizeSpeechText(incomingText);
+
+    /*
+     * Incoming is already completely represented by existing.
+     */
+    if (
+      incomingNormalized === existingNormalized ||
+      existingNormalized.startsWith(
+        incomingNormalized + " ",
+      )
+    ) {
+      return existingText;
+    }
+
+    /*
+     * Incoming contains the complete existing transcript plus
+     * additional words. Append only those additional words.
+     */
+    if (
+      incomingNormalized.startsWith(
+        existingNormalized + " ",
+      )
+    ) {
+      return [
+        existingText,
+        ...incomingWords.slice(existingWords.length),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+
+    /*
+     * Protect against partial overlap between the end of the
+     * existing transcript and the beginning of the incoming text.
+     */
+    const maxOverlap = Math.min(
+      existingWords.length,
+      incomingWords.length,
+    );
+
+    for (
+      let overlap = maxOverlap;
+      overlap > 0;
+      overlap -= 1
+    ) {
+      const existingSuffix = normalizeSpeechText(
+        existingWords
+          .slice(existingWords.length - overlap)
+          .join(" "),
+      );
+
+      const incomingPrefix = normalizeSpeechText(
+        incomingWords
+          .slice(0, overlap)
+          .join(" "),
+      );
+
+      if (existingSuffix === incomingPrefix) {
+        return [
+          existingText,
+          ...incomingWords.slice(overlap),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+      }
+    }
+
+    /*
+     * No overlap was found, so this is genuinely new speech.
+     */
+    return [existingText, incomingText]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
+  /*
+   * Extracts only the unfinished portion of an interim hypothesis.
+   *
+   * Example:
+   *
+   * committed: "Bro I want to go"
+   * interim:   "Bro I want to go with you"
+   * result:    "with you"
+   */
+  function extractSpeechDelta(
+    committed: string,
+    incoming: string,
+  ) {
+    const committedText = committed.trim();
+    const incomingText = incoming.trim();
+
+    if (!incomingText) {
+      return "";
+    }
+
+    if (!committedText) {
+      return incomingText;
+    }
+
+    const committedWords = committedText.split(/\s+/);
+    const incomingWords = incomingText.split(/\s+/);
+    const committedNormalized = normalizeSpeechText(
+      committedText,
+    );
+    const incomingNormalized = normalizeSpeechText(
+      incomingText,
+    );
+
+    /*
+     * Interim is already fully represented by committed speech.
+     */
+    if (
+      incomingNormalized === committedNormalized ||
+      committedNormalized.startsWith(
+        incomingNormalized + " ",
+      )
+    ) {
+      return "";
+    }
+
+    /*
+     * Interim contains the committed transcript plus a new
+     * unfinished suffix.
+     */
+    if (
+      incomingNormalized.startsWith(
+        committedNormalized + " ",
+      )
+    ) {
+      return incomingWords
+        .slice(committedWords.length)
+        .join(" ")
+        .trim();
+    }
+
+    return incomingText;
+  }
+
   function updateVoicePrompt() {
     setPrompt(
       buildVoicePrompt(
@@ -372,22 +563,22 @@ export function AICenter() {
       }
 
       /*
-       * Only process results from resultIndex onward.
+       * resultIndex identifies where the browser says a result
+       * changed, but the returned transcript itself may contain
+       * words that were already recognized. Never blindly append
+       * the returned text as a new chunk.
        *
-       * Browser speech recognition maintains historical results
-       * inside event.results. Processing the entire collection
-       * every time would duplicate previously committed speech.
+       * Final speech is committed through appendSpeechDelta().
+       * Interim speech remains temporary and is replaced each time.
        */
-      let newFinalText = "";
-      let newInterimText = "";
+      let nextInterim = "";
 
       for (
         let index = event.resultIndex;
         index < event.results.length;
         index += 1
       ) {
-        const result =
-          event.results[index];
+        const result = event.results[index];
 
         if (!result) {
           continue;
@@ -401,43 +592,29 @@ export function AICenter() {
         }
 
         if (result.isFinal) {
-          newFinalText = [
-            newFinalText,
-            transcript,
-          ]
-            .filter(Boolean)
-            .join(" ");
+          voiceFinalTranscriptRef.current =
+            appendSpeechDelta(
+              voiceFinalTranscriptRef.current,
+              transcript,
+            );
         } else {
-          newInterimText = [
-            newInterimText,
+          nextInterim = appendSpeechDelta(
+            nextInterim,
             transcript,
-          ]
-            .filter(Boolean)
-            .join(" ");
+          );
         }
       }
 
       /*
-       * Any final result belongs permanently in the session
-       * transcript. It is committed exactly once because we only
-       * process the newly changed result range.
-       */
-      if (newFinalText) {
-        voiceFinalTranscriptRef.current = [
-          voiceFinalTranscriptRef.current.trim(),
-          newFinalText.trim(),
-        ]
-          .filter(Boolean)
-          .join(" ");
-      }
-
-      /*
-       * Interim speech represents the CURRENT unfinished phrase.
-       * It replaces the previous interim text instead of being
-       * appended to it.
+       * Some recognition engines include already-committed speech
+       * in the current interim hypothesis. Keep only the unfinished
+       * suffix in the temporary interim buffer.
        */
       voiceInterimTranscriptRef.current =
-        newInterimText;
+        extractSpeechDelta(
+          voiceFinalTranscriptRef.current,
+          nextInterim,
+        );
 
       updateVoicePrompt();
     };
@@ -487,21 +664,18 @@ export function AICenter() {
        *
        * This is NOT the end of the user's voice session.
        *
-       * Any interim speech that did not become final cannot safely
-       * be treated as a permanent phrase across recognition
-       * connections, so it is folded into the visible transcript
-       * before restarting.
+       * Any interim speech that did not become final is folded into
+       * the permanent transcript using the same deduplication logic.
        */
       const interim =
         voiceInterimTranscriptRef.current.trim();
 
       if (interim) {
-        voiceFinalTranscriptRef.current = [
-          voiceFinalTranscriptRef.current.trim(),
-          interim,
-        ]
-          .filter(Boolean)
-          .join(" ");
+        voiceFinalTranscriptRef.current =
+          appendSpeechDelta(
+            voiceFinalTranscriptRef.current,
+            interim,
+          );
       }
 
       voiceInterimTranscriptRef.current = "";
