@@ -5,24 +5,21 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * TJC OS Design System
- * Premium dark editorial theme — obsidian black, gold accent.
+ * ================================================================
+ * TJC OS — LUXURY DESIGN SYSTEM
+ * ================================================================
  *
- * Headings: Poppins
- * Body: Inter
- * Numerals: Space Grotesk
+ * Visual identity:
+ *   Obsidian Black
+ *   Charcoal Gray
+ *   Metallic Gold
  *
- * Design principles:
- * - Cinematic
- * - Editorial
- * - Premium
- * - Restrained
- * - Accessible
- * - Responsive
- * - Motion-aware
+ * Philosophy:
+ *   Premium • Executive • Cinematic • Clean • Modern • Powerful
  *
- * Components should consume semantic tokens/utilities rather than
- * hardcoding brand colors.
+ * IMPORTANT:
+ * This file controls the visual language of the entire application.
+ * Do not place business logic or application functionality here.
  */
 
 @theme inline {
@@ -40,40 +37,54 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
   --color-gold-foreground: var(--gold-foreground);
+
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
+
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -84,153 +95,189 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ================================================================
+   LUXURY COLOR PALETTE
+   ================================================================ */
+
 :root {
-  --radius: 0.875rem;
+  --radius: 0.8rem;
 
-  /* Core brand */
+  /* --------------------------------------------------------------
+     OBSIDIAN
+     -------------------------------------------------------------- */
 
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
+  --background: oklch(0.105 0 0);
+  --foreground: oklch(0.965 0.008 90);
 
-  --surface: oklch(0.215 0 0);
-  --surface-foreground: oklch(0.985 0 0);
+  /* Main surfaces */
+  --surface: oklch(0.165 0.008 90);
+  --surface-foreground: oklch(0.965 0.008 90);
 
-  --card: oklch(0.196 0 0);
-  --card-foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0.007 90);
+  --card-foreground: oklch(0.965 0.008 90);
 
-  --popover: oklch(0.196 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.155 0.008 90);
+  --popover-foreground: oklch(0.965 0.008 90);
 
-  /* Gold system */
+  /* --------------------------------------------------------------
+     METALLIC GOLD
+     -------------------------------------------------------------- */
 
-  --gold: oklch(0.784 0.132 88.5);
-  --gold-soft: oklch(0.882 0.089 92);
-  --gold-foreground: oklch(0.145 0 0);
+  --gold: oklch(0.76 0.145 86);
+  --gold-soft: oklch(0.87 0.105 91);
+  --gold-deep: oklch(0.62 0.125 78);
+  --gold-foreground: oklch(0.105 0 0);
 
-  --primary: oklch(0.784 0.132 88.5);
-  --primary-foreground: oklch(0.145 0 0);
+  /* Primary action = GOLD */
+  --primary: var(--gold);
+  --primary-foreground: var(--gold-foreground);
 
-  --secondary: oklch(0.245 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
+  /* --------------------------------------------------------------
+     CHARCOAL / GRAY
+     -------------------------------------------------------------- */
 
-  --muted: oklch(0.245 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --secondary: oklch(0.205 0.008 90);
+  --secondary-foreground: oklch(0.94 0.006 90);
 
-  --accent: oklch(0.278 0.018 90);
-  --accent-foreground: oklch(0.882 0.089 92);
+  --muted: oklch(0.195 0.007 90);
+  --muted-foreground: oklch(0.67 0.008 90);
 
-  /* Semantic states */
+  --accent: oklch(0.235 0.018 88);
+  --accent-foreground: var(--gold-soft);
 
-  --success: oklch(0.596 0.152 149.5);
-  --success-foreground: oklch(0.985 0 0);
+  /* --------------------------------------------------------------
+     STATUS COLORS
+     -------------------------------------------------------------- */
 
-  --warning: oklch(0.769 0.163 70.5);
-  --warning-foreground: oklch(0.145 0 0);
+  --success: oklch(0.62 0.14 149);
+  --success-foreground: oklch(0.98 0 0);
 
-  --destructive: oklch(0.577 0.216 27.3);
-  --destructive-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.77 0.15 78);
+  --warning-foreground: oklch(0.11 0 0);
 
-  --info: oklch(0.546 0.215 262.9);
-  --info-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.58 0.19 28);
+  --destructive-foreground: oklch(0.98 0 0);
 
-  /* Borders / inputs / focus */
+  --info: oklch(0.6 0.13 255);
+  --info-foreground: oklch(0.98 0 0);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.784 0.132 88.5 / 60%);
+  /* --------------------------------------------------------------
+     BORDERS
+     -------------------------------------------------------------- */
 
-  /* Data visualization */
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
 
-  --chart-1: oklch(0.784 0.132 88.5);
-  --chart-2: oklch(0.882 0.089 92);
-  --chart-3: oklch(0.596 0.152 149.5);
-  --chart-4: oklch(0.546 0.215 262.9);
-  --chart-5: oklch(0.708 0 0);
+  /* Gold focus */
+  --ring: oklch(0.76 0.145 86 / 65%);
 
-  /* Sidebar */
+  /* --------------------------------------------------------------
+     CHARTS
+     -------------------------------------------------------------- */
 
-  --sidebar: oklch(0.175 0 0);
-  --sidebar-foreground: oklch(0.92 0 0);
-  --sidebar-primary: oklch(0.784 0.132 88.5);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.245 0 0);
-  --sidebar-accent-foreground: oklch(0.882 0.089 92);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.784 0.132 88.5 / 60%);
+  --chart-1: var(--gold);
+  --chart-2: var(--gold-soft);
+  --chart-3: oklch(0.68 0.015 90);
+  --chart-4: oklch(0.58 0.01 90);
+  --chart-5: oklch(0.45 0.008 90);
 
-  /* Gradients */
+  /* --------------------------------------------------------------
+     SIDEBAR
+     -------------------------------------------------------------- */
+
+  --sidebar: oklch(0.09 0.004 90);
+  --sidebar-foreground: oklch(0.9 0.006 90);
+
+  --sidebar-primary: var(--gold);
+  --sidebar-primary-foreground: var(--gold-foreground);
+
+  --sidebar-accent: oklch(0.18 0.012 88);
+  --sidebar-accent-foreground: var(--gold-soft);
+
+  --sidebar-border: oklch(1 0 0 / 7%);
+  --sidebar-ring: var(--ring);
+
+  /* ================================================================
+     LUXURY GRADIENTS
+     ================================================================ */
 
   --gradient-gold: linear-gradient(
     135deg,
-    oklch(0.882 0.089 92),
-    oklch(0.784 0.132 88.5) 45%,
-    oklch(0.66 0.114 78) 100%
+    oklch(0.9 0.09 92) 0%,
+    oklch(0.79 0.14 87) 35%,
+    oklch(0.67 0.13 79) 72%,
+    oklch(0.56 0.1 73) 100%
+  );
+
+  --gradient-gold-subtle: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--gold) 18%, transparent),
+    color-mix(in oklab, var(--gold-deep) 5%, transparent)
   );
 
   --gradient-surface: linear-gradient(
-    160deg,
-    oklch(0.215 0 0),
-    oklch(0.155 0 0)
+    145deg,
+    oklch(0.185 0.009 90),
+    oklch(0.115 0.005 90)
+  );
+
+  --gradient-surface-raised: linear-gradient(
+    145deg,
+    oklch(0.22 0.01 90),
+    oklch(0.145 0.006 90)
   );
 
   --gradient-halo: radial-gradient(
-    60% 60% at 50% 0%,
-    color-mix(in oklab, var(--gold) 18%, transparent),
-    transparent 70%
+    ellipse 60% 45% at 50% 0%,
+    color-mix(in oklab, var(--gold) 14%, transparent),
+    transparent 72%
   );
 
-  --gradient-hero: linear-gradient(
-    180deg,
-    oklch(0.08 0 0 / 12%),
-    oklch(0.08 0 0 / 55%) 55%,
-    oklch(0.08 0 0 / 96%)
-  );
+  /* ================================================================
+     LUXURY SHADOWS
+     ================================================================ */
 
-  --gradient-image-overlay: linear-gradient(
-    180deg,
-    transparent 20%,
-    oklch(0.08 0 0 / 82%) 100%
-  );
+  --shadow-elegant:
+    0 25px 70px -30px oklch(0 0 0 / 85%);
 
-  /* Elevation / glow */
-
-  --shadow-elegant: 0 24px 60px -24px oklch(0 0 0 / 70%);
-
-  --shadow-card: 0 18px 45px -26px oklch(0 0 0 / 80%);
+  --shadow-card:
+    0 16px 45px -28px oklch(0 0 0 / 90%);
 
   --shadow-gold:
-    0 18px 50px -20px
-    color-mix(in oklab, var(--gold) 45%, transparent);
+    0 18px 55px -22px
+    color-mix(in oklab, var(--gold) 42%, transparent);
 
   --shadow-gold-soft:
-    0 12px 34px -20px
-    color-mix(in oklab, var(--gold) 25%, transparent);
+    0 12px 35px -20px
+    color-mix(in oklab, var(--gold) 22%, transparent);
 
-  /* Motion */
+  /* ================================================================
+     MOTION
+     ================================================================ */
 
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --duration-fast: 180ms;
-  --duration-normal: 280ms;
-  --duration-slow: 600ms;
+  --duration-fast: 160ms;
+  --duration-normal: 260ms;
+  --duration-slow: 550ms;
 
-  /* Layout */
+  /* ================================================================
+     LAYOUT
+     ================================================================ */
 
-  --content-max: 80rem;
+  --content-max: 82rem;
   --reading-max: 48rem;
   --hero-min-height: min(92svh, 58rem);
 }
 
-/* Platform is dark-first. */
+/* ================================================================
+   GLOBAL BASE
+   ================================================================ */
 
 .dark {
   color-scheme: dark;
 }
-
-/* ===============================================================
- * BASE
- * =============================================================== */
 
 @layer base {
   *,
@@ -242,13 +289,22 @@
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    background: var(--background);
   }
 
   body {
     min-width: 320px;
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    min-height: 100vh;
+    background:
+      radial-gradient(
+        ellipse 70% 35% at 50% -10%,
+        color-mix(in oklab, var(--gold) 5%, transparent),
+        transparent 70%
+      ),
+      var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
     line-height: 1.6;
   }
@@ -276,6 +332,10 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  button {
+    font: inherit;
+  }
+
   h1,
   h2,
   h3,
@@ -289,22 +349,22 @@
   }
 
   h1 {
-    font-size: clamp(2.5rem, 8vw, 6.5rem);
+    font-size: clamp(2.4rem, 7vw, 6rem);
     font-weight: 700;
   }
 
   h2 {
-    font-size: clamp(2rem, 5vw, 4rem);
+    font-size: clamp(1.9rem, 5vw, 3.8rem);
     font-weight: 650;
   }
 
   h3 {
-    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    font-size: clamp(1.45rem, 3vw, 2.2rem);
     font-weight: 650;
   }
 
   h4 {
-    font-size: clamp(1.2rem, 2vw, 1.5rem);
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
     font-weight: 600;
   }
 
@@ -317,35 +377,32 @@
     display: block;
     max-width: 100%;
   }
-
-  button {
-    font: inherit;
-  }
 }
 
-/* ===============================================================
- * SIMPLE TAILWIND UTILITIES
- * =============================================================== */
+/* ================================================================
+   TYPOGRAPHY UTILITIES
+   ================================================================ */
 
 @utility text-display {
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   line-height: 0.98;
 }
 
 @utility text-eyebrow {
   font-family: var(--font-sans);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   line-height: 1.2;
   text-transform: uppercase;
+  color: var(--gold);
 }
 
 @utility text-editorial {
   max-width: var(--reading-max);
-  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  font-size: clamp(1rem, 1.5vw, 1.18rem);
   line-height: 1.8;
   color: var(--muted-foreground);
 }
@@ -353,6 +410,7 @@
 @utility text-gold-gradient {
   background-image: var(--gradient-gold);
   background-clip: text;
+  -webkit-background-clip: text;
   color: transparent;
 }
 
@@ -361,9 +419,9 @@
   font-feature-settings: "tnum";
 }
 
-/* ===============================================================
- * LAYOUT
- * =============================================================== */
+/* ================================================================
+   LAYOUT
+   ================================================================ */
 
 @layer utilities {
   .container-tjc {
@@ -377,39 +435,38 @@
     padding-block: 4.5rem;
   }
 
-  .editorial-grid {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1rem;
-  }
-
-  .editorial-grid-wide {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1rem;
-  }
-
-  /* =============================================================
-   * SURFACES
-   * ============================================================= */
+  /* ==============================================================
+     PREMIUM SURFACES
+     ============================================================== */
 
   .surface-glass {
-    background: color-mix(in oklab, var(--surface) 55%, transparent);
-    backdrop-filter: blur(18px) saturate(140%);
-    border: 1px solid var(--color-border);
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in oklab, var(--surface) 78%, transparent),
+        color-mix(in oklab, var(--background) 88%, transparent)
+      );
+    backdrop-filter: blur(20px) saturate(135%);
+    -webkit-backdrop-filter: blur(20px) saturate(135%);
+    border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
   }
 
   .surface-panel {
     background-image: var(--gradient-surface);
-    border: 1px solid var(--color-border);
+    border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
     box-shadow: var(--shadow-elegant);
   }
 
   .surface-card {
     position: relative;
     overflow: hidden;
-    background: var(--card);
-    border: 1px solid var(--color-border);
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in oklab, var(--card) 96%, white 4%),
+        var(--card)
+      );
+    border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-card);
     transition:
@@ -418,70 +475,48 @@
       box-shadow var(--duration-normal) var(--ease-smooth);
   }
 
+  .surface-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        120deg,
+        color-mix(in oklab, var(--gold) 4%, transparent),
+        transparent 38%
+      );
+  }
+
+  .surface-card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--gold) 24%, transparent);
+    box-shadow: var(--shadow-gold-soft);
+  }
+
   .hairline {
     border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
   }
 
   .hairline-gold {
-    border: 1px solid color-mix(in oklab, var(--gold) 35%, transparent);
+    border: 1px solid color-mix(in oklab, var(--gold) 38%, transparent);
   }
 
   .divider-gold {
     width: 100%;
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in oklab, var(--gold) 45%, transparent),
-      transparent
-    );
+    background:
+      linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in oklab, var(--gold) 45%, transparent),
+        transparent
+      );
   }
 
-  /* =============================================================
-   * CINEMATIC HERO
-   * ============================================================= */
-
-  .hero-cinematic {
-    position: relative;
-    min-height: var(--hero-min-height);
-    isolation: isolate;
-    overflow: hidden;
-  }
-
-  .hero-backdrop {
-    position: absolute;
-    inset: 0;
-    z-index: -3;
-    overflow: hidden;
-  }
-
-  .hero-backdrop-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    filter: saturate(0.82) contrast(1.04);
-    transform: scale(1.02);
-  }
-
-  .hero-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: -2;
-    background-image: var(--gradient-hero);
-  }
-
-  .hero-halo {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background-image: var(--gradient-halo);
-  }
-
-  /* =============================================================
-   * GOLD GLOW
-   * ============================================================= */
+  /* ==============================================================
+     GOLD EFFECTS
+     ============================================================== */
 
   .gold-glow {
     box-shadow: var(--shadow-gold);
@@ -499,20 +534,235 @@
   .gold-halo::before {
     content: "";
     position: absolute;
-    inset: -15%;
+    inset: -20%;
     z-index: -1;
     pointer-events: none;
-    background: radial-gradient(
-      circle,
-      color-mix(in oklab, var(--gold) 16%, transparent),
-      transparent 68%
-    );
-    filter: blur(24px);
+    background:
+      radial-gradient(
+        circle,
+        color-mix(in oklab, var(--gold) 14%, transparent),
+        transparent 68%
+      );
+    filter: blur(30px);
   }
 
-  /* =============================================================
-   * IMAGE TREATMENT
-   * ============================================================= */
+  /* ==============================================================
+     CARDS
+     ============================================================== */
+
+  .card-interactive {
+    transition:
+      transform var(--duration-normal) var(--ease-premium),
+      border-color var(--duration-normal) var(--ease-smooth),
+      box-shadow var(--duration-normal) var(--ease-smooth);
+  }
+
+  .card-interactive:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklab, var(--gold) 30%, var(--border));
+    box-shadow: var(--shadow-gold-soft);
+  }
+
+  .card-lift {
+    transition: transform var(--duration-normal) var(--ease-premium);
+  }
+
+  .card-lift:hover {
+    transform: translateY(-5px);
+  }
+
+  /* ==============================================================
+     LUXURY BUTTONS
+     ============================================================== */
+
+  .btn-tjc {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border-radius: 0.7rem;
+    padding-inline: 1.15rem;
+    font-size: 0.84rem;
+    font-weight: 650;
+    letter-spacing: 0.015em;
+    transition:
+      transform var(--duration-fast) var(--ease-premium),
+      background-color var(--duration-fast) var(--ease-smooth),
+      border-color var(--duration-fast) var(--ease-smooth),
+      box-shadow var(--duration-fast) var(--ease-smooth),
+      color var(--duration-fast) var(--ease-smooth);
+  }
+
+  .btn-gold {
+    background-image: var(--gradient-gold);
+    color: var(--gold-foreground);
+    border: 1px solid color-mix(in oklab, white 12%, transparent);
+    box-shadow: var(--shadow-gold-soft);
+  }
+
+  .btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold);
+    filter: brightness(1.05);
+  }
+
+  .btn-outline {
+    border: 1px solid color-mix(in oklab, var(--foreground) 15%, transparent);
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in oklab, var(--surface) 75%, transparent),
+        color-mix(in oklab, var(--background) 80%, transparent)
+      );
+    color: var(--foreground);
+  }
+
+  .btn-outline:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--gold) 50%, transparent);
+    color: var(--gold-soft);
+    box-shadow: var(--shadow-gold-soft);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted-foreground);
+  }
+
+  .btn-ghost:hover {
+    color: var(--gold-soft);
+    background: color-mix(in oklab, var(--gold) 7%, transparent);
+  }
+
+  /* ==============================================================
+     INPUTS
+     ============================================================== */
+
+  input,
+  textarea,
+  select {
+    color-scheme: dark;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: color-mix(in oklab, var(--muted-foreground) 75%, transparent);
+  }
+
+  /* ==============================================================
+     SCROLLBAR
+     ============================================================== */
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color:
+      color-mix(in oklab, var(--gold) 55%, transparent)
+      var(--background);
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--gold) 65%, transparent),
+        color-mix(in oklab, var(--gold-deep) 55%, transparent)
+      );
+    border-radius: 999px;
+    border: 2px solid var(--background);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
+  }
+
+  /* ==============================================================
+     TABLE / DATA
+     ============================================================== */
+
+  table thead {
+    background: color-mix(in oklab, var(--surface) 80%, transparent);
+  }
+
+  table th {
+    color: var(--gold-soft);
+    font-weight: 650;
+  }
+
+  table tbody tr {
+    border-color: var(--border);
+    transition: background-color var(--duration-fast) var(--ease-smooth);
+  }
+
+  table tbody tr:hover {
+    background: color-mix(in oklab, var(--gold) 4%, transparent);
+  }
+
+  /* ==============================================================
+     FOCUS
+     ============================================================== */
+
+  .focus-tjc {
+    outline: none;
+  }
+
+  .focus-tjc:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 4px;
+    box-shadow:
+      0 0 0 5px color-mix(in oklab, var(--gold) 12%, transparent),
+      var(--shadow-gold-soft);
+  }
+
+  .focus-ring {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+  }
+
+  /* ==============================================================
+     CINEMATIC HERO
+     ============================================================== */
+
+  .hero-cinematic {
+    position: relative;
+    min-height: var(--hero-min-height);
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+      linear-gradient(
+        180deg,
+        oklch(0.04 0 0 / 5%),
+        oklch(0.04 0 0 / 55%) 55%,
+        oklch(0.04 0 0 / 96%)
+      );
+  }
+
+  .hero-halo {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--gradient-halo);
+  }
+
+  /* ==============================================================
+     IMAGE TREATMENT
+     ============================================================== */
 
   .image-cover {
     width: 100%;
@@ -549,114 +799,17 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image: var(--gradient-image-overlay);
+    background:
+      linear-gradient(
+        180deg,
+        transparent 20%,
+        oklch(0.04 0 0 / 84%) 100%
+      );
   }
 
-  /* =============================================================
-   * CARD INTERACTION
-   * ============================================================= */
-
-  .card-interactive {
-    transition:
-      transform var(--duration-normal) var(--ease-premium),
-      border-color var(--duration-normal) var(--ease-smooth),
-      box-shadow var(--duration-normal) var(--ease-smooth);
-  }
-
-  .card-interactive:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in oklab, var(--gold) 30%, var(--border));
-    box-shadow: var(--shadow-gold-soft);
-  }
-
-  .card-lift {
-    transition: transform var(--duration-normal) var(--ease-premium);
-  }
-
-  .card-lift:hover {
-    transform: translateY(-5px);
-  }
-
-  /* =============================================================
-   * BUTTONS
-   * ============================================================= */
-
-  .btn-tjc {
-    display: inline-flex;
-    min-height: 2.75rem;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-    border-radius: 999px;
-    padding-inline: 1.15rem;
-    font-size: 0.85rem;
-    font-weight: 650;
-    letter-spacing: 0.01em;
-    transition:
-      transform var(--duration-fast) var(--ease-premium),
-      background-color var(--duration-fast) var(--ease-smooth),
-      border-color var(--duration-fast) var(--ease-smooth),
-      box-shadow var(--duration-fast) var(--ease-smooth),
-      color var(--duration-fast) var(--ease-smooth);
-  }
-
-  .btn-gold {
-    background: var(--gradient-gold);
-    color: var(--gold-foreground);
-    box-shadow: var(--shadow-gold-soft);
-  }
-
-  .btn-gold:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-gold);
-  }
-
-  .btn-outline {
-    border: 1px solid color-mix(in oklab, var(--foreground) 18%, transparent);
-    background: color-mix(in oklab, var(--surface) 35%, transparent);
-    color: var(--foreground);
-  }
-
-  .btn-outline:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in oklab, var(--gold) 45%, transparent);
-    color: var(--gold-soft);
-  }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--muted-foreground);
-  }
-
-  .btn-ghost:hover {
-    color: var(--gold-soft);
-    background: color-mix(in oklab, var(--gold) 7%, transparent);
-  }
-
-  /* =============================================================
-   * FOCUS / ACCESSIBILITY
-   * ============================================================= */
-
-  .focus-tjc {
-    outline: none;
-  }
-
-  .focus-tjc:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: 4px;
-    box-shadow:
-      0 0 0 5px color-mix(in oklab, var(--gold) 12%, transparent),
-      var(--shadow-gold-soft);
-  }
-
-  .focus-ring {
-    outline: 2px solid var(--gold);
-    outline-offset: 3px;
-  }
-
-  /* =============================================================
-   * MOTION
-   * ============================================================= */
+  /* ==============================================================
+     MOTION
+     ============================================================== */
 
   .transition-tjc {
     transition:
@@ -686,6 +839,10 @@
   }
 }
 
+/* ================================================================
+   ANIMATION
+   ================================================================ */
+
 @keyframes tjc-rise {
   from {
     opacity: 0;
@@ -698,13 +855,13 @@
   }
 }
 
-/* ===============================================================
- * RESPONSIVE LAYOUT
- * =============================================================== */
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
 
 @media (min-width: 640px) {
-  .editorial-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .container-tjc {
+    padding-inline: 1.5rem;
   }
 }
 
@@ -714,19 +871,7 @@
   }
 
   .section-y {
-    padding-block: 7rem;
-  }
-
-  .editorial-grid-wide {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .editorial-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.25rem;
+    padding-block: 6rem;
   }
 }
 
@@ -736,13 +881,13 @@
   }
 
   .section-y {
-    padding-block: 8rem;
+    padding-block: 7rem;
   }
 }
 
-/* ===============================================================
- * REDUCED MOTION
- * =============================================================== */
+/* ================================================================
+   REDUCED MOTION
+   ================================================================ */
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -769,31 +914,5 @@
   .btn-tjc {
     transform: none !important;
   }
-}
-
-/* ===============================================================
- * MOBILE REFINEMENT
- * =============================================================== */
-
-@media (max-width: 639px) {
-  :root {
-    --radius: 0.75rem;
-  }
-
-  .container-tjc {
-    padding-inline: 1rem;
-  }
-
-  .section-y {
-    padding-block: 3.5rem;
-  }
-
-  .hero-cinematic {
-    min-height: 78svh;
-  }
-
-  .btn-tjc {
-    min-height: 2.875rem;
-    padding-inline: 1rem;
-  }
-}
+    }
+    
