@@ -451,11 +451,119 @@
     border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
   }
 
-  .surface-panel {
-    background-image: var(--gradient-surface);
-    border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
-    box-shadow: var(--shadow-elegant);
-  }
+.surface-panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      145deg,
+      oklch(0.205 0.012 88),
+      oklch(0.115 0.006 90)
+    );
+  border: 1px solid color-mix(in oklab, var(--gold) 24%, transparent);
+  box-shadow:
+    0 18px 50px -28px oklch(0 0 0 / 95%),
+    0 0 0 1px color-mix(in oklab, var(--gold) 7%, transparent),
+    0 0 28px -18px color-mix(in oklab, var(--gold) 34%, transparent);
+}
+
+.surface-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in oklab, var(--gold) 9%, transparent),
+      transparent 32%,
+      transparent 72%,
+      color-mix(in oklab, var(--gold) 3%, transparent)
+    );
+}
+
+.luxury-tile {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(
+      145deg,
+      oklch(0.20 0.012 88),
+      oklch(0.12 0.006 90)
+    );
+  border: 1px solid color-mix(in oklab, var(--gold) 30%, transparent);
+  box-shadow:
+    0 18px 48px -28px oklch(0 0 0 / 95%),
+    0 0 24px -16px color-mix(in oklab, var(--gold) 45%, transparent);
+  transition:
+    transform 240ms var(--ease-premium),
+    border-color 240ms var(--ease-smooth),
+    box-shadow 240ms var(--ease-smooth),
+    background 240ms var(--ease-smooth);
+}
+
+.luxury-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 12% 0%,
+      color-mix(in oklab, var(--gold) 13%, transparent),
+      transparent 42%
+    );
+}
+
+.luxury-tile:hover {
+  transform: translateY(-5px);
+  border-color: color-mix(in oklab, var(--gold) 62%, transparent);
+  box-shadow:
+    0 24px 58px -26px oklch(0 0 0 / 96%),
+    0 0 34px -12px color-mix(in oklab, var(--gold) 62%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      oklch(0.225 0.018 88),
+      oklch(0.13 0.008 90)
+    );
+}
+
+.luxury-tile:active {
+  transform: translateY(-1px) scale(0.985);
+  box-shadow:
+    0 10px 26px -18px oklch(0 0 0 / 95%),
+    0 0 20px -10px color-mix(in oklab, var(--gold) 55%, transparent);
+}
+
+.luxury-tile:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+
+.tjc-dashboard {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      ellipse 65% 32% at 58% 0%,
+      color-mix(in oklab, var(--gold) 7%, transparent),
+      transparent 72%
+    );
+}
+
+.tjc-dashboard h1,
+.tjc-dashboard h2,
+.tjc-dashboard h3,
+.tjc-dashboard h4 {
+  color: var(--gold-soft);
+}
+
+.tjc-dashboard .text-muted-foreground {
+  color: oklch(0.68 0.008 90);
+}
 
   .surface-card {
     position: relative;
