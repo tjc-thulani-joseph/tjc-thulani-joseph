@@ -25,7 +25,7 @@ function OsLayout() {
         <OsSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <OsTopbar />
-          <main className="flex-1 p-5 md:p-8">
+          <main className="tjc-dashboard flex-1 p-5 md:p-8">
             <Outlet />
           </main>
         </div>
