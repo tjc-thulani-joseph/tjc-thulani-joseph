@@ -9,13 +9,13 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
       className={cn(
         [
           "group relative overflow-hidden rounded-xl",
-          "border border-border/80",
+          "border border-gold/22",
           "bg-card text-card-foreground",
-          "shadow-[0_16px_45px_-28px_rgba(0,0,0,0.9)]",
+          "shadow-[0_18px_48px_-28px_rgba(0,0,0,0.95),0_0_26px_-18px_color-mix(in_oklab,var(--gold)_32%,transparent)]",
           "transition-all duration-300 ease-out",
           "hover:-translate-y-0.5",
-          "hover:border-gold/25",
-          "hover:shadow-[0_18px_45px_-24px_color-mix(in_oklab,var(--gold)_20%,transparent)]",
+          "hover:border-gold/55",
+          "hover:shadow-[0_22px_54px_-24px_color-mix(in_oklab,var(--gold)_55%,transparent)]",
         ].join(" "),
         className,
       )}
