@@ -28,13 +28,13 @@ export function OverviewModule() {
               key={module.slug}
               to="/dashboard/$module"
               params={{ module: module.slug }}
-              className="surface-panel group rounded-2xl p-6 transition-transform duration-500 hover:-translate-y-1"
+              className="luxury-tile group rounded-2xl p-6"
             >
               <div className="flex items-center justify-between">
                 <module.icon className="size-5 text-gold" aria-hidden />
                 <ArrowUpRight className="size-4 text-muted-foreground transition-colors group-hover:text-gold" aria-hidden />
               </div>
-              <h3 className="mt-5 font-display text-base font-semibold">{module.label}</h3>
+              <h3 className="mt-5 font-display text-base font-semibold text-gold-soft">{module.label}</h3>
               <p className="mt-1.5 text-sm text-muted-foreground">{module.description}</p>
             </Link>
           ))}
