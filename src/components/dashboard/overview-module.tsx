@@ -1,13 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Bot } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DASHBOARD_MODULES } from "@/config/dashboard-modules";
+import { DASHBOARD_MODULES, getModule } from "@/config/dashboard-modules";
 import { INTEGRATIONS } from "@/config/integrations";
 import { useAuth } from "@/contexts/auth-context";
 
 export function OverviewModule() {
-  const { session } = useAuth();
+  const { session, atLeast, loading } = useAuth();
+  const aiModule = getModule("ai");
   const quick = DASHBOARD_MODULES.filter((m) => m.group === "Content").slice(0, 6);
 
   return (
@@ -19,6 +21,18 @@ export function OverviewModule() {
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
         Every part of the public brand is managed from here.
       </p>
+
+      {!loading && aiModule && atLeast(aiModule.minRole) && (
+        <section className="mt-8 flex flex-wrap items-center justify-between gap-5 border-y border-gold/25 py-7">
+          <div className="flex items-center gap-4">
+            <Bot className="size-9 text-gold" aria-hidden />
+            <h2 className="font-display text-2xl font-semibold">TJC AI</h2>
+          </div>
+          <Button asChild variant="luxury" size="lg">
+            <Link to="/dashboard/$module" params={{ module: "ai" }}>Open AI chat <ArrowUpRight aria-hidden /></Link>
+          </Button>
+        </section>
+      )}
 
       <section className="mt-10">
         <h2 className="font-display text-lg font-semibold">Quick actions</h2>

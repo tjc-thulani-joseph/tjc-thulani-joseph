@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { Bell, LogOut, Search } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Bell, Bot, LogOut, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,9 +10,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
+import { getModule } from "@/config/dashboard-modules";
 
 export function OsTopbar() {
-  const { session, signOut } = useAuth();
+  const { session, signOut, atLeast, loading } = useAuth();
+  const aiModule = getModule("ai");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const initials = (session?.user.displayName ?? session?.user.email ?? "TJ").slice(0, 2).toUpperCase();
@@ -32,6 +34,13 @@ export function OsTopbar() {
         <Input placeholder="Search TJC OS" className="pl-9" aria-label="Search TJC OS" />
       </div>
       <div className="ml-auto flex items-center gap-2">
+        {!loading && aiModule && atLeast(aiModule.minRole) && (
+          <Button asChild variant="luxury" className="h-11 px-5" aria-label="Open TJC AI chat">
+            <Link to="/dashboard/$module" params={{ module: "ai" }}>
+              <Bot className="size-5" aria-hidden /> TJC AI
+            </Link>
+          </Button>
+        )}
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <Bell className="size-4" />
         </Button>
