@@ -502,6 +502,7 @@ SidebarMenuItem.displayName = "SidebarMenuItem";
 
 const sidebarMenuButtonVariants = cva(
   "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-xl border border-transparent p-2.5 text-left text-sm outline-none ring-sidebar-ring cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:scale-[0.985] active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:border-gold/35 data-[active=true]:bg-gold/10 data-[active=true]:font-semibold data-[active=true]:text-gold-soft data-[active=true]:shadow-[0_0_22px_-12px_color-mix(in_oklab,var(--gold)_80%,transparent)] data-[active=true]:[&_svg]:text-gold data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  {
     variants: {
       variant: {
         default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
