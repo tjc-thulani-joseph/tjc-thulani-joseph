@@ -344,7 +344,7 @@
   h6 {
     margin: 0;
     font-family: var(--font-display);
-    letter-spacing: -0.025em;
+    letter-spacing: 0;
     line-height: 1.08;
   }
 
@@ -1024,3 +1024,16 @@
   }
     }
     
+
+/* Metallic Luxury Noir: full-bleed identity and quiet charcoal panels. */
+.noir-hero { min-height: min(760px, 82svh); display: flex; align-items: center; }
+.noir-backdrop { opacity: 0.55; }
+.noir-shade { background: linear-gradient(90deg, var(--background), color-mix(in oklab, var(--background) 48%, transparent)), linear-gradient(0deg, var(--background), transparent 50%); }
+.noir-identity { letter-spacing: 0; line-height: 1; }
+.noir-monogram { font-size: 112px; line-height: 0.95; }
+.noir-name { font-size: 72px; line-height: 1.12; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .noir-hero { min-height: auto; }
+  .noir-monogram { font-size: 80px; }
+  .noir-name { font-size: 42px; }
+}

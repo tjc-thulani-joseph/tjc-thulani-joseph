@@ -34,6 +34,8 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "TJC | Thulani Joseph — Official Site" },
       { name: "description", content: SITE.description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:title",
         content: "TJC | Thulani Joseph — Official Site",
@@ -124,18 +126,14 @@ type MediaKind = "cover" | "thumbnail" | "image";
 function imageFor(item: ContentRecord, key: MediaKind) {
   const metadata = item.metadata ?? {};
 
-  return resolveMedia(
-    metadata,
-    key,
-    item.thumbnail_url,
-  );
+  return resolveMedia(metadata, key, item.thumbnail_url ?? (key === "image" ? item.url : null));
 }
 
 function ContentFallback() {
   return (
-    <div className="flex size-full items-center justify-center bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--gold)_18%,transparent),transparent_58%)]">
+    <div className="flex size-full items-center justify-center bg-secondary">
       <span
-        className="font-display text-4xl tracking-tight text-gold/60"
+        className="font-display text-4xl tracking-normal text-gold/60"
         aria-hidden
       >
         TJC
@@ -190,9 +188,9 @@ function EditorialCard({
   return (
     <Link
       to={to}
-      className="group block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <article className="card-interactive surface-panel h-full overflow-hidden rounded-2xl">
+      <article className="card-interactive surface-panel h-full overflow-hidden rounded-lg">
         <div className="image-editorial relative aspect-[4/3] overflow-hidden bg-secondary">
           <SafeImage
             src={image}
@@ -262,7 +260,7 @@ function HomepageBuilderSection({
       : "Featured section";
 
   const content = (
-    <article className="surface-glass group relative overflow-hidden rounded-2xl border border-border">
+    <article className="surface-glass group relative overflow-hidden rounded-lg border border-border">
       {image && (
         <div className="image-editorial relative aspect-[16/7] overflow-hidden">
           <SafeImage
@@ -336,7 +334,7 @@ function HomepageBuilderSection({
       href={sectionUrl}
       target="_blank"
       rel="noreferrer"
-      className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {content}
     </a>
@@ -396,140 +394,44 @@ function CurrentWorld({
   projects: ContentRecord[];
   posts: ContentRecord[];
 }) {
-  const featured = [
-    ...featuredFirst(videos)
-      .slice(0, 1)
-      .map((item) => ({
-        item,
-        to: "/videos" as const,
-        kind: "thumbnail" as const,
-        label: "Visual story",
-      })),
+  const entries = [
+    ...videos.map((item) => ({ item, to: "/videos" as const, kind: "thumbnail" as const, label: "Visual story" })),
+    ...music.map((item) => ({ item, to: "/music" as const, kind: "cover" as const, label: "New release" })),
+    ...projects.map((item) => ({ item, to: "/projects" as const, kind: "thumbnail" as const, label: "Creative project" })),
+    ...gallery.map((item) => ({ item, to: "/gallery" as const, kind: "image" as const, label: "From the frame" })),
+    ...posts.map((item) => ({ item, to: "/blog" as const, kind: "thumbnail" as const, label: "Latest note" })),
+  ].sort((a, b) => {
+    const date = (item: ContentRecord) => new Date(item.published_at ?? item.created_at).getTime() || 0;
+    return date(b.item) - date(a.item);
+  }).slice(0, 4);
 
-    ...featuredFirst(music)
-      .slice(0, 1)
-      .map((item) => ({
-        item,
-        to: "/music" as const,
-        kind: "cover" as const,
-        label: "Latest sound",
-      })),
-
-    ...featuredFirst(projects)
-      .slice(0, 1)
-      .map((item) => ({
-        item,
-        to: "/projects" as const,
-        kind: "thumbnail" as const,
-        label: "Creative project",
-      })),
-
-    ...featuredFirst(gallery)
-      .slice(0, 1)
-      .map((item) => ({
-        item,
-        to: "/gallery" as const,
-        kind: "image" as const,
-        label: "From the frame",
-      })),
-
-    ...featuredFirst(posts)
-      .slice(0, 1)
-      .map((item) => ({
-        item,
-        to: "/blog" as const,
-        kind: "thumbnail" as const,
-        label: "Latest note",
-      })),
-  ];
-
-  if (featured.length === 0) {
-    return null;
-  }
-
-  const lead = featured[0];
-  if (!lead) return null;
+  if (!entries.length) return null;
 
   return (
-    <section
-      id="current"
-      className="section-y border-t border-border"
-    >
+    <section id="current" className="section-y border-t border-border bg-background">
       <div className="container-tjc">
         <Reveal>
-          <SectionHeading
-            eyebrow="The world right now"
-            title="In the world of TJC"
-            intro="A living selection of the music, images, stories and creative work moving through the TJC universe."
-          />
+          <SectionHeading eyebrow="The world right now" title="Discover TJC" />
         </Reveal>
-
-        <div className="mt-10 grid gap-5 lg:grid-cols-[1.45fr_0.8fr]">
-          <Reveal className="h-full">
-            <Link
-              to={lead.to}
-              className="group block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              <article className="hero-cinematic relative h-full min-h-[30rem] overflow-hidden rounded-2xl border border-border">
-                <SafeImage
-                  src={imageFor(
-                    lead.item,
-                    lead.kind,
-                  )}
-                  alt={
-                    lead.item.title ??
-                    "Featured TJC work"
-                  }
-                  className="hero-backdrop-image absolute inset-0 size-full object-cover"
-                  fallback={<ContentFallback />}
-                />
-
-                <div className="hero-overlay absolute inset-0" />
-
-                <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-gold">
-                    {lead.label}
-                  </p>
-
-                  <h3 className="mt-3 max-w-3xl font-display text-3xl font-semibold leading-[1.05] sm:text-5xl">
-                    {lead.item.title ??
-                      "Untitled"}
-                  </h3>
-
-                  {lead.item.description && (
-                    <p className="mt-4 max-w-xl text-sm leading-relaxed text-foreground/75 sm:text-base">
-                      {lead.item.description}
-                    </p>
-                  )}
-        
-<span className="mt-6 inline-flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-gold">
-                    Discover
-                    <ArrowRight
-                      className="size-4 transition-transform duration-300 group-hover:translate-x-1"
-                      aria-hidden
-                    />
+        <div className="mt-10 grid gap-x-8 gap-y-10 md:grid-cols-2">
+          {entries.map((entry, index) => (
+            <Reveal key={`${entry.to}-${entry.item.id}`} delay={index * 70}>
+              <Link to={entry.to} className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <div className="image-editorial relative aspect-[16/10] overflow-hidden rounded-lg border border-border bg-secondary">
+                  <SafeImage src={imageFor(entry.item, entry.kind)} alt={entry.item.title ?? "TJC creative work"}
+                    className="size-full object-cover" fallback={<ContentFallback />} />
+                  <span className="absolute bottom-4 right-4 flex size-11 items-center justify-center rounded-full border border-gold/40 bg-background/90 text-gold transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <ArrowRight className="size-5" aria-hidden />
                   </span>
                 </div>
-              </article>
-            </Link>
-          </Reveal>
-
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
-            {featured
-              .slice(1, 3)
-              .map((entry, index) => (
-                <Reveal
-                  key={entry.item.id}
-                  delay={(index + 1) * 80}
-                >
-                  <EditorialCard
-                    item={entry.item}
-                    to={entry.to}
-                    kind={entry.kind}
-                  />
-                </Reveal>
-              ))}
-          </div>
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase text-gold">{entry.label}</p>
+                  <ContentMeta item={entry.item} />
+                </div>
+                <h3 className="mt-3 font-display text-2xl font-semibold leading-tight transition-colors group-hover:text-gold-soft">{entry.item.title ?? "Untitled"}</h3>
+              </Link>
+            </Reveal>
+          ))}
         </div>
       </div>
     </section>
@@ -557,7 +459,7 @@ function ExploreUniverse() {
               >
                 <Link
                   to={pillar.to}
-                  className="card-lift surface-panel group relative block h-full overflow-hidden rounded-2xl p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-7"
+                  className="card-lift surface-panel group relative block h-full overflow-hidden rounded-lg p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-7"
                 >
                   <span
                     className="absolute right-5 top-5 font-display text-4xl text-foreground/[0.04]"
@@ -682,7 +584,7 @@ function StorySection() {
         </Reveal>
 
         <Reveal delay={100}>
-          <div className="surface-glass relative overflow-hidden rounded-2xl p-7 sm:p-9">
+          <div className="surface-glass relative overflow-hidden rounded-lg p-7 sm:p-9">
             <div
               className="gold-halo pointer-events-none absolute -right-20 -top-20 size-48"
               aria-hidden
@@ -724,7 +626,7 @@ function FinalGateway() {
     <section className="section-y border-t border-border">
       <div className="container-tjc">
         <Reveal>
-          <div className="hero-cinematic relative overflow-hidden rounded-2xl border border-border px-6 py-14 sm:px-10 sm:py-20 lg:px-16">
+          <div className="hero-cinematic relative overflow-hidden rounded-lg border border-border px-6 py-14 sm:px-10 sm:py-20 lg:px-16">
             <div
               className="hero-halo absolute -right-24 -top-24 size-72"
               aria-hidden
@@ -783,7 +685,9 @@ function FinalGateway() {
   );
 }
 
-function HomePage() {  const { settings } = usePublicSiteSettings();
+function HomePage() {
+  const { settings } = usePublicSiteSettings();
+  const displayName = settings.siteName.replace(/^TJC\s*[|/—-]?\s*/i, "").trim() || "Thulani Joseph";
   /*
    * Public content feeds.
    *
@@ -809,93 +713,46 @@ function HomePage() {  const { settings } = usePublicSiteSettings();
       {/* =====================================================
           01 — HERO / IDENTITY
           ===================================================== */}
-      <section className="hero-cinematic relative isolate overflow-hidden">
-        <img
-          src={heroBackdrop}
+      <section className="noir-hero relative isolate overflow-hidden border-b border-border">
+        <SafeImage
+          src={settings.heroImageUrl ?? heroBackdrop}
           alt=""
-          width={1920}
-          height={1088}
+          loading="eager"
           fetchPriority="high"
-          className="hero-backdrop-image absolute inset-0 -z-10 size-full object-cover"
+          className="noir-backdrop absolute inset-0 -z-20 size-full object-cover"
+          fallback={<img src={heroBackdrop} alt="" className="noir-backdrop absolute inset-0 -z-20 size-full object-cover" />}
         />
-
-        <div
-          aria-hidden
-          className="hero-halo absolute -right-24 top-0 -z-10 size-[34rem]"
-        />
-
-        <div className="hero-overlay absolute inset-0 -z-10" />
-
-        <div className="container-tjc relative flex min-h-[var(--hero-min-height)] flex-col justify-center py-24 sm:py-28">
-  <Reveal>
-    <HomepageQuickLinks />
-  </Reveal>
-
-  <Reveal delay={40}>
-  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.4em] text-gold">
-    Official site · TJC
-  </p>
-</Reveal>
-
-<Reveal delay={80}>
-  <h1 className="mt-6 max-w-5xl font-display text-5xl font-semibold leading-[0.94] tracking-[-0.03em] md:text-7xl lg:text-[clamp(4.5rem,8vw,7rem)]">
-    {settings.siteName}
-  </h1>
-</Reveal>
-
-<Reveal delay={160}>
-  <p className="mt-7 max-w-2xl text-base leading-relaxed text-foreground/75 md:text-lg">
-    {settings.description}
-  </p>
-</Reveal>
-
+        <div aria-hidden className="noir-shade pointer-events-none absolute inset-0 -z-10" />
+        <div className="container-tjc relative py-24 sm:py-28">
+          <Reveal>
+            <p className="mb-6 text-xs font-semibold uppercase text-gold">Official site · TJC</p>
+          </Reveal>
+          <Reveal delay={80}>
+            <h1 className="noir-identity font-display font-bold">
+              <span className="noir-monogram block text-gold-gradient">TJC</span>
+              <span className="noir-name mt-3 block text-foreground">{displayName}</span>
+            </h1>
+          </Reveal>
+          <Reveal delay={160}>
+            <p className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground line-clamp-2 md:text-lg">{settings.description}</p>
+          </Reveal>
           <Reveal delay={240}>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Button
-                asChild
-                size="lg"
-                className="btn-gold rounded-full px-7"
-              >
-                <Link to="/about">
-                  The story
-                  <ArrowRight
-                    className="size-4"
-                    aria-hidden
-                  />
-                </Link>
+            <div className="mt-9 flex flex-wrap gap-4">
+              <Button asChild variant="luxury" size="lg" className="min-w-48">
+                <Link to="/music">Explore the music <ArrowRight aria-hidden /></Link>
               </Button>
-
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="btn-outline rounded-full px-7"
-              >
-                <Link to="/contact">
-                  Work with me
-                </Link>
+              <Button asChild variant="outline" size="lg" className="min-w-40 bg-background/50">
+                <Link to="/about">The story <ArrowRight aria-hidden /></Link>
               </Button>
             </div>
           </Reveal>
-
           <Reveal delay={320}>
-            <a
-              href="#current"
-              className="mt-16 inline-flex w-fit items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-gold"
-            >
-              Discover the current world
-              <ArrowDown
-                className="size-3.5 animate-bounce"
-                aria-hidden
-              />
+            <div className="mt-8"><HomepageQuickLinks /></div>
+            <a href="#current" className="mt-9 inline-flex items-center gap-3 text-xs uppercase text-muted-foreground transition-colors hover:text-gold">
+              Discover the current world <ArrowDown className="size-4" aria-hidden />
             </a>
           </Reveal>
         </div>
-
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent"
-        />
       </section>
 
       {/* =====================================================
@@ -927,7 +784,7 @@ function HomePage() {  const { settings } = usePublicSiteSettings();
       <ContentSection
         items={music.items}
         eyebrow="Latest release"
-        title="Music"
+        title="New releases"
         intro="The latest sounds and releases from the studio."
         to="/music"
         label="View all music"
