@@ -267,9 +267,9 @@ export function MediaCollection({
 
             const externalSource =
               kind === "audio"
-                ? metadata.audio_url
+                ? metadata["audio_url"]
                 : kind === "video"
-                  ? metadata.video_url
+                  ? metadata["video_url"]
                   : null;
 
             const externalProvider =
@@ -302,15 +302,15 @@ export function MediaCollection({
                 : null;
 
             const artist =
-              typeof metadata.artist ===
+              typeof metadata["artist"] ===
               "string"
-                ? metadata.artist
+                ? metadata["artist"]
                 : null;
 
             const album =
-              typeof metadata.album ===
+              typeof metadata["album"] ===
               "string"
-                ? metadata.album
+                ? metadata["album"]
                 : null;
 
             const platformLinks =

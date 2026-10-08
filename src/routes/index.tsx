@@ -252,7 +252,7 @@ function HomepageBuilderSection({
   );
 
   const sectionUrl = safeExternalUrl(
-    metadata.section_url,
+    metadata["section_url"],
   );
 
   const sectionType =
@@ -282,7 +282,7 @@ function HomepageBuilderSection({
             {sectionType}
           </p>
 
-          {Boolean(metadata.featured) && (
+          {Boolean(metadata["featured"]) && (
             <>
               <span
                 aria-hidden
@@ -448,6 +448,7 @@ function CurrentWorld({
   }
 
   const lead = featured[0];
+  if (!lead) return null;
 
   return (
     <section

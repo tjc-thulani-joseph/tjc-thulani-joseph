@@ -28,8 +28,8 @@ function platformFromLink(link: ContentRecord) {
 
   const url = String(
     link.url ??
-      (typeof link.metadata?.url === "string"
-        ? link.metadata.url
+      (typeof link.metadata?.["url"] === "string"
+        ? link.metadata["url"]
         : ""),
   ).toLowerCase();
 
@@ -215,15 +215,15 @@ function getLinkUrl(link: ContentRecord) {
 
   return safeExternalUrl(
     link.url ??
-      (typeof metadata.url === "string"
-        ? metadata.url
+      (typeof metadata["url"] === "string"
+        ? metadata["url"]
         : null),
   );
 }
 
 function getHandle(link: ContentRecord) {
-  return typeof link.metadata?.handle === "string"
-    ? link.metadata.handle
+  return typeof link.metadata?.["handle"] === "string"
+    ? link.metadata["handle"]
     : null;
 }
 
@@ -275,7 +275,7 @@ export function HomepageQuickLinks() {
   const quickLinks = links
     .filter((link) =>
       Boolean(
-        link.metadata?.homepage_quick_link,
+        link.metadata?.["homepage_quick_link"],
       ),
     )
     .sort(

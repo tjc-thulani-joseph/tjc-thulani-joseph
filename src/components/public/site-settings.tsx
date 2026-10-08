@@ -43,12 +43,12 @@ function readPublicSettings(
     tagline: record.category?.trim() || SITE.tagline,
     description: record.description?.trim() || SITE.description,
     websiteUrl: record.url?.trim() || "",
-    contactEmail: String(metadata.contact_email ?? "").trim(),
-    location: String(metadata.location ?? "").trim(),
-    copyright: String(metadata.copyright ?? "").trim(),
-    logoUrl: String(metadata.logo_url ?? "").trim(),
+    contactEmail: String(metadata["contact_email"] ?? "").trim(),
+    location: String(metadata["location"] ?? "").trim(),
+    copyright: String(metadata["copyright"] ?? "").trim(),
+    logoUrl: String(metadata["logo_url"] ?? "").trim(),
     defaultSocialImage: String(
-      metadata.default_social_image ?? "",
+      metadata["default_social_image"] ?? "",
     ).trim(),
   };
 }
