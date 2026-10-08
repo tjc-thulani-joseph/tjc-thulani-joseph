@@ -6,6 +6,8 @@ import { SocialLinks } from "@/components/public/social-links";
 export const Route = createFileRoute("/links")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         title: "Links — TJC | Thulani Joseph",
       },

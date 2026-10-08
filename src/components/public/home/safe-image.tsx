@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type ImgHTMLAttributes } from "react";
 
 /**
  * Image with an elegant fallback: a failed or missing source renders the
@@ -9,13 +9,14 @@ export function SafeImage({
   alt,
   className,
   fallback = null,
+  ...props
 }: {
   src: string | null;
   alt: string;
   className?: string;
   fallback?: ReactNode;
-}) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return <>{fallback}</>;
-  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className={className} />;
+} & Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "onError">) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  if (!src || failedSrc === src) return <>{fallback}</>;
+  return <img loading="lazy" {...props} src={src} alt={alt} onError={() => setFailedSrc(src)} className={className} />;
 }

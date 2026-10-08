@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { services } from "@/services";
 import { optimizeImage } from "@/lib/image-optimize";
 import { fileNameOf, mediaUrl, type MediaRef } from "@/lib/media";
+import { SafeImage } from "@/components/public/home/safe-image";
 
 interface Props {
   label: string;
@@ -39,20 +40,24 @@ export function MediaField({ label, bucket, accept, value, onChange }: Props) {
   });
 
   async function handleFile(file: File) {
-    const { file: payload } = await optimizeImage(file);
-    const path = `${Date.now()}-${safeName(payload.name) || "file"}`;
-    setPercent(0);
-    const result = await services().storage.uploadWithProgress(bucket, path, payload, {
-      onProgress: setPercent,
-    });
-    setPercent(null);
-    if (result.error) {
-      toast.error(`${file.name} failed to upload`, { description: result.error.message });
+    if (accept?.startsWith("image") && !file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
       return;
     }
-    onChange({ bucket, path, name: payload.name, mimeType: payload.type, size: payload.size });
-    void existing.refetch();
-    toast.success(`${payload.name} uploaded and attached`);
+    setPercent(0);
+    try {
+      const { file: payload } = await optimizeImage(file);
+      const path = `${Date.now()}-${safeName(payload.name) || "file"}`;
+      const result = await services().storage.uploadWithProgress(bucket, path, payload, { onProgress: setPercent });
+      if (result.error) throw new Error(result.error.message);
+      onChange({ bucket, path, name: payload.name, mimeType: payload.type, size: payload.size });
+      void existing.refetch();
+      toast.success(`${payload.name} uploaded and attached`);
+    } catch (error) {
+      toast.error(`${file.name} failed to upload`, { description: error instanceof Error ? error.message : "Please try again." });
+    } finally {
+      setPercent(null);
+    }
   }
 
   const url = mediaUrl(value);
@@ -66,7 +71,7 @@ export function MediaField({ label, bucket, accept, value, onChange }: Props) {
 
       {value && url && (
         <div className="surface-panel rounded-xl p-3">
-          {isImage && <img src={url} alt="" className="max-h-44 w-full rounded-lg object-cover" />}
+          {isImage && <SafeImage src={url} alt="" className="max-h-44 w-full rounded-lg object-cover" fallback={<p className="text-sm text-muted-foreground">Image unavailable</p>} />}
           {isAudio && <audio controls src={url} className="w-full" />}
           {isVideo && <video controls src={url} className="max-h-56 w-full rounded-lg" />}
           <div className="mt-3 flex items-center justify-between gap-3">
@@ -114,6 +119,7 @@ export function MediaField({ label, bucket, accept, value, onChange }: Props) {
         </Button>
 
         <Select
+          disabled={percent !== null}
           value={value?.path ?? ""}
           onValueChange={(path) => {
             const item = (existing.data ?? []).find((entry) => entry.path === path);

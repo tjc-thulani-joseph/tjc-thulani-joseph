@@ -20,6 +20,9 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-[0_10px_30px_-14px_color-mix(in_oklab,var(--gold)_60%,transparent)] hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_16px_40px_-16px_color-mix(in_oklab,var(--gold)_65%,transparent)]",
 
+        luxury:
+          "btn-gold text-primary-foreground hover:-translate-y-0.5 active:translate-y-0 motion-reduce:transform-none",
+
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:-translate-y-0.5 hover:bg-destructive/90",
 
@@ -39,7 +42,7 @@ const buttonVariants = cva(
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-11 rounded-lg px-8",
+        lg: "h-14 rounded-md px-8 text-base",
         icon: "h-10 w-10",
       },
     },

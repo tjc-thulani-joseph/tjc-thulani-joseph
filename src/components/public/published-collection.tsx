@@ -3,6 +3,7 @@ import { EmptyState } from "@/components/layout/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { services } from "@/services";
 import type { BaseRecord } from "@/types";
+import { SafeImage } from "@/components/public/home/safe-image";
 
 /** A published content row as stored in every TJC OS content table. */
 export interface PublishedRecord extends BaseRecord {
@@ -60,7 +61,7 @@ export function PublishedCollection({ resource, emptyTitle, emptyBody, showBody 
           const card = (
             <article key={item.id} className="surface-panel h-full overflow-hidden rounded-2xl">
               {item.thumbnail_url && !showBody && (
-                <img
+                <SafeImage
                   src={item.thumbnail_url}
                   alt={item.title ?? ""}
                   loading="lazy"

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MediaField } from "@/components/dashboard/media-field";
+import { getMediaRef, mediaUrl, type MediaRef } from "@/lib/media";
 import { services } from "@/services";
 import type { ContentRecord } from "@/types";
 
@@ -20,6 +22,7 @@ type SiteSettings = {
   copyright: string;
   logoUrl: string;
   defaultSocialImage: string;
+  heroImage: MediaRef | null;
 };
 
 const EMPTY_SETTINGS: SiteSettings = {
@@ -32,6 +35,7 @@ const EMPTY_SETTINGS: SiteSettings = {
   copyright: "",
   logoUrl: "",
   defaultSocialImage: "",
+  heroImage: null,
 };
 
 const SETTINGS_SLUG = "global";
@@ -53,6 +57,7 @@ function readSettings(record: ContentRecord | null): SiteSettings {
     copyright: String(metadata["copyright"] ?? ""),
     logoUrl: String(metadata["logo_url"] ?? ""),
     defaultSocialImage: String(metadata["default_social_image"] ?? ""),
+    heroImage: getMediaRef(metadata, "hero_image"),
   };
 }
 
@@ -161,6 +166,8 @@ export function SiteSettingsManager() {
           logo_url: draft.logoUrl.trim() || null,
           default_social_image:
             draft.defaultSocialImage.trim() || null,
+          hero_image: draft.heroImage,
+          hero_image_url: mediaUrl(draft.heroImage),
         },
 
         /*
@@ -195,6 +202,7 @@ export function SiteSettingsManager() {
       void queryClient.invalidateQueries({
         queryKey: ["home"],
       });
+      void queryClient.invalidateQueries({ queryKey: ["public-site-settings"] });
 
       toast.success("Site settings saved", {
         description:
@@ -296,6 +304,20 @@ export function SiteSettingsManager() {
           {save.isPending ? "Saving…" : "Save changes"}
         </Button>
       </div>
+
+      <section className="mt-8 border-y border-border py-6" aria-label="Homepage main image">
+        <h2 className="mb-5 font-display text-xl font-semibold">Homepage main image</h2>
+        <MediaField
+          label="Hero image"
+          bucket="images"
+          accept="image/*"
+          value={settings.heroImage}
+          onChange={(heroImage) => setSettings((current) => ({ ...current, heroImage }))}
+        />
+        <Button variant="luxury" className="mt-5" onClick={() => save.mutate(settings)} disabled={save.isPending}>
+          <Save aria-hidden /> {save.isPending ? "Saving…" : "Save changes"}
+        </Button>
+      </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <Card className="surface-panel border-border">
@@ -491,10 +513,6 @@ export function SiteSettingsManager() {
                 Brand Assets
               </CardTitle>
 
-              <p className="text-xs text-muted-foreground">
-                URLs for global brand assets. Media Library integration
-                can be connected here later.
-              </p>
             </CardHeader>
 
             <CardContent className="space-y-5">

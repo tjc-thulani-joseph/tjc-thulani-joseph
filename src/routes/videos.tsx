@@ -6,6 +6,8 @@ import { PublicLayout } from "@/components/layout/public-layout";
 export const Route = createFileRoute("/videos")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Videos — TJC | Thulani Joseph" },
       { name: "description", content: "Visual work, performances and film by Thulani Joseph." },
       { property: "og:title", content: "Videos — TJC | Thulani Joseph" },

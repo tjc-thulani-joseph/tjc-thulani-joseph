@@ -4,6 +4,7 @@ import logo from "@/assets/tjc-logo.png.asset.json";
 import { usePublicSiteSettings } from "@/components/public/site-settings";
 import { SITE } from "@/constants/site";
 import { cn } from "@/lib/utils";
+import { SafeImage } from "@/components/public/home/safe-image";
 
 export function Logo({
   className,
@@ -26,11 +27,12 @@ export function Logo({
       )}
       aria-label={`${siteName} — home`}
     >
-      <img
+      <SafeImage
         src={imageUrl}
         alt=""
         width={size}
         height={size}
+        fallback={<img src={logo.url} alt="" width={size} height={size} className="rounded-md object-cover" />}
         className="rounded-md object-cover transition-transform duration-500 group-hover:scale-105"
         style={{
           width: size,

@@ -95,8 +95,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "TJC OS is an AI-ready personal brand platform and digital headquarters for Thulani Joseph." },
       { property: "og:description", content: "TJC OS is an AI-ready personal brand platform and digital headquarters for Thulani Joseph." },
       { name: "twitter:description", content: "TJC OS is an AI-ready personal brand platform and digital headquarters for Thulani Joseph." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/86d29adf-9f34-4426-9b34-3731a70f59d3/id-preview-329a0d09--bcb16d77-6efb-45a2-af28-f784c2fedb3b.lovable.app-1785598448805.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/86d29adf-9f34-4426-9b34-3731a70f59d3/id-preview-329a0d09--bcb16d77-6efb-45a2-af28-f784c2fedb3b.lovable.app-1785598448805.png" },
     ],
     links: [
       {

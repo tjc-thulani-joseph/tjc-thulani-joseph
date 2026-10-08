@@ -11,6 +11,7 @@ import {
   resolveMedia,
 } from "@/lib/media";
 import type { ContentRecord } from "@/types";
+import { SafeImage } from "@/components/public/home/safe-image";
 
 type Kind =
   | "audio"
@@ -327,7 +328,7 @@ export function MediaCollection({
                 {kind ===
                   "image" &&
                   media && (
-                    <img
+                    <SafeImage
                       src={media}
                       alt={
                         item.title ??
@@ -367,7 +368,7 @@ export function MediaCollection({
                       />
                     ) : (
                       cover && (
-                        <img
+                        <SafeImage
                           src={cover}
                           alt={
                             item.title ??
@@ -384,7 +385,7 @@ export function MediaCollection({
                 {kind ===
                   "audio" &&
                   cover && (
-                    <img
+                    <SafeImage
                       src={cover}
                       alt={
                         item.title ??
