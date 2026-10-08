@@ -13,6 +13,8 @@ import { services } from "@/services";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Contact — TJC | Thulani Joseph" },
       { name: "description", content: "Bookings, collaborations, press and general enquiries for Thulani Joseph." },
       { property: "og:title", content: "Contact — TJC | Thulani Joseph" },

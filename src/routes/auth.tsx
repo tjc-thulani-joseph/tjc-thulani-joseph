@@ -13,6 +13,8 @@ import { authService } from "@/services";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "TJC OS — Secure Sign In" },
       {
         name: "description",

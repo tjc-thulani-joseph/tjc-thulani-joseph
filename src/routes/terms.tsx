@@ -6,6 +6,8 @@ import { PublicLayout } from "@/components/layout/public-layout";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Terms of Use — TJC | Thulani Joseph" },
       { name: "description", content: "The terms that govern the use of this website and its content." },
       { property: "og:title", content: "Terms of Use — TJC | Thulani Joseph" },
