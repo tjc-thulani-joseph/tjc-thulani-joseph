@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SITE } from "@/constants/site";
 import { services } from "@/services";
 import type { ContentRecord } from "@/types";
+import { resolveMedia } from "@/lib/media";
 
 export type PublicSiteSettings = {
   siteName: string;
@@ -15,6 +16,7 @@ export type PublicSiteSettings = {
   copyright: string;
   logoUrl: string;
   defaultSocialImage: string;
+  heroImageUrl: string | null;
 };
 
 const FALLBACK_SETTINGS: PublicSiteSettings = {
@@ -27,6 +29,7 @@ const FALLBACK_SETTINGS: PublicSiteSettings = {
   copyright: "",
   logoUrl: "",
   defaultSocialImage: "",
+  heroImageUrl: null,
 };
 
 function readPublicSettings(
@@ -50,6 +53,7 @@ function readPublicSettings(
     defaultSocialImage: String(
       metadata["default_social_image"] ?? "",
     ).trim(),
+    heroImageUrl: resolveMedia(metadata, "hero_image", metadata["hero_image_url"]),
   };
 }
 
@@ -86,6 +90,8 @@ export function usePublicSiteSettings() {
       return readPublicSettings(record);
     },
     staleTime: 60_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   return {

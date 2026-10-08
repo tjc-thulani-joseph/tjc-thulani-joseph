@@ -28,7 +28,11 @@ export function usePublished(
           status: "published",
           perPage: limit,
           orderBy: "published_at",
+          ascending: false,
         }),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 
   const items = query.data?.error
