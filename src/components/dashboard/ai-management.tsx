@@ -73,14 +73,17 @@ function ManagementCard({
 
 function ManagementLink({
   to,
+  params,
   children,
 }: {
   to: string;
+  params?: { module: string };
   children: React.ReactNode;
 }) {
   return (
     <Link
       to={to}
+      {...(params ? { params } : {})}
       className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gold transition hover:text-gold/80"
     >
       {children}

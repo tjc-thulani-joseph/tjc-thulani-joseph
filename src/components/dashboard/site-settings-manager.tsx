@@ -48,11 +48,11 @@ function readSettings(record: ContentRecord | null): SiteSettings {
     tagline: record.category ?? "",
     description: record.description ?? "",
     websiteUrl: record.url ?? "",
-    contactEmail: String(metadata.contact_email ?? ""),
-    location: String(metadata.location ?? ""),
-    copyright: String(metadata.copyright ?? ""),
-    logoUrl: String(metadata.logo_url ?? ""),
-    defaultSocialImage: String(metadata.default_social_image ?? ""),
+    contactEmail: String(metadata["contact_email"] ?? ""),
+    location: String(metadata["location"] ?? ""),
+    copyright: String(metadata["copyright"] ?? ""),
+    logoUrl: String(metadata["logo_url"] ?? ""),
+    defaultSocialImage: String(metadata["default_social_image"] ?? ""),
   };
 }
 

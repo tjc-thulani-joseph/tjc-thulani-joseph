@@ -52,8 +52,8 @@ export function featuredFirst(
   items: ContentRecord[],
 ): ContentRecord[] {
   return [...items].sort((a, b) => {
-    const aFeatured = Boolean(a.metadata?.featured);
-    const bFeatured = Boolean(b.metadata?.featured);
+    const aFeatured = Boolean(a.metadata?.["featured"]);
+    const bFeatured = Boolean(b.metadata?.["featured"]);
 
     if (aFeatured === bFeatured) {
       return 0;

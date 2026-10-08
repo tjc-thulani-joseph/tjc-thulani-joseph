@@ -512,7 +512,7 @@ export function ContentManager({
   const setStatus = (status: ContentStatus) => {
     setErrors((current) => {
       const next = { ...current };
-      delete next.status;
+      delete next["status"];
       return next;
     });
 
@@ -936,7 +936,7 @@ export function ContentManager({
                             const next = {
                               ...current,
                             };
-                            delete next.scheduledFor;
+                            delete next["scheduledFor"];
                             return next;
                           },
                         );
@@ -963,9 +963,9 @@ export function ContentManager({
                       <code>published_at</code>.
                     </p>
 
-                    {errors.scheduledFor && (
+                    {errors["scheduledFor"] && (
                       <p className="text-xs text-destructive">
-                        {errors.scheduledFor}
+                        {errors["scheduledFor"]}
                       </p>
                     )}
                   </div>
