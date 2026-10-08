@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { SITE } from "@/constants/site";
 import { services } from "@/services";
 import type { ContentRecord } from "@/types";
-import { resolveMedia } from "@/lib/media";
+import { resolveMedia, safeExternalUrl } from "@/lib/media";
+import { useRouterState } from "@tanstack/react-router";
 
 export type PublicSiteSettings = {
   siteName: string;
@@ -53,7 +54,7 @@ function readPublicSettings(
     defaultSocialImage: String(
       metadata["default_social_image"] ?? "",
     ).trim(),
-    heroImageUrl: resolveMedia(metadata, "hero_image", metadata["hero_image_url"]),
+    heroImageUrl: resolveMedia(metadata, "hero_image", safeExternalUrl(metadata["hero_image_url"])),
   };
 }
 
@@ -110,8 +111,10 @@ export function usePublicSiteSettings() {
  */
 export function PublicSiteMetadata() {
   const { settings } = usePublicSiteSettings();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   useEffect(() => {
+    if (pathname !== "/") return;
     const title = `${settings.siteName} — Official Site`;
 
     document.title = title;
@@ -127,11 +130,13 @@ export function PublicSiteMetadata() {
 
       if (!element) {
         element = document.createElement("meta");
-        element.setAttribute(attribute, "");
+        const match = selector.match(/(?:name|property)="([^"]+)"/);
+        if (!match?.[1]) return;
+        element.setAttribute(attribute, match[1]);
         document.head.appendChild(element);
       }
 
-      element.setAttribute(attribute, value);
+      element.setAttribute("content", value);
     };
 
     setMeta(
@@ -158,23 +163,28 @@ export function PublicSiteMetadata() {
       settings.description,
     );
 
-    if (settings.defaultSocialImage) {
+    const image = safeExternalUrl(settings.heroImageUrl);
+    if (image) {
       setMeta(
         'meta[property="og:image"]',
         "property",
-        settings.defaultSocialImage,
+        image,
       );
 
       setMeta(
         'meta[name="twitter:image"]',
         "name",
-        settings.defaultSocialImage,
+        image,
       );
+    } else {
+      document.head.querySelector('meta[property="og:image"]')?.remove();
+      document.head.querySelector('meta[name="twitter:image"]')?.remove();
     }
   }, [
     settings.siteName,
     settings.description,
-    settings.defaultSocialImage,
+    settings.heroImageUrl,
+    pathname,
   ]);
 
   return null;

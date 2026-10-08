@@ -28,6 +28,11 @@ export const Route = createFileRoute("/_authenticated/dashboard/$module")({
     return {
       meta: [
         { title: `${module?.label ?? "Module"} — TJC OS` },
+        { name: "description", content: `${module?.label ?? "Dashboard"} management in Thulani Joseph's private TJC OS.` },
+        { property: "og:title", content: `${module?.label ?? "Module"} — TJC OS` },
+        { property: "og:description", content: `${module?.label ?? "Dashboard"} management in Thulani Joseph's private TJC OS.` },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
         { name: "robots", content: "noindex" },
       ],
     };
@@ -38,8 +43,10 @@ export const Route = createFileRoute("/_authenticated/dashboard/$module")({
 
 function ModulePage() {
   const { module: slug } = Route.useParams();
-  const module = getModule(slug)!;
+  const module = getModule(slug);
   const { atLeast, loading } = useAuth();
+  if (!module) throw notFound();
+  if (loading) return <p className="text-sm text-muted-foreground">Loading dashboard…</p>;
 
   if (!loading && !atLeast(module.minRole)) {
     return (
