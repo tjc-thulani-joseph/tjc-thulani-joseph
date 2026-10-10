@@ -711,7 +711,7 @@ function HomePage() {
 
   return (
     <PublicLayout>
-      <ReleaseSpotlight songs={music.items} />
+      <ReleaseSpotlight songs={music.items} videos={videos.items} posts={posts.items} projects={projects.items} />
       {/* =====================================================
           01 — HERO / IDENTITY
           ===================================================== */}
