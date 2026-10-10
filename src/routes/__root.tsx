@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { SITE } from "@/constants/site";
+import { PlayerProvider } from "@/components/public/player/player";
 
 function NotFoundComponent() {
   return (
@@ -150,7 +151,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <PlayerProvider>
+          <Outlet />
+        </PlayerProvider>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

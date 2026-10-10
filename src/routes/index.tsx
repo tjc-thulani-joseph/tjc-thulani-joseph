@@ -23,6 +23,7 @@ import { usePublicSiteSettings } from "@/components/public/site-settings";
 import { SafeImage } from "@/components/public/home/safe-image";
 import { SectionHeading } from "@/components/public/home/section-heading";
 import { Button } from "@/components/ui/button";
+import { ReleaseSpotlight } from "@/components/public/player/release-spotlight";
 import {
   resolveMedia,
   safeExternalUrl,
@@ -710,6 +711,7 @@ function HomePage() {
 
   return (
     <PublicLayout>
+      <ReleaseSpotlight songs={music.items} videos={videos.items} posts={posts.items} projects={projects.items} />
       {/* =====================================================
           01 — HERO / IDENTITY
           ===================================================== */}
