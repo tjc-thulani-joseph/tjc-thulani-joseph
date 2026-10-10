@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Pause, Play } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SafeImage } from "@/components/public/home/safe-image";
 import { formatDate } from "@/components/public/home/home-data";
 import { resolveMedia } from "@/lib/media";
@@ -15,6 +16,8 @@ const KIND: Record<Kind, { badge: string; to: "/music" | "/videos" | "/blog" | "
   project: { badge: "New Release", to: "/projects", cover: "featured_image" },
 };
 
+const ROTATE_MS = 6000;
+
 function dateOf(item: ContentRecord) {
   const raw = (item.metadata ?? {})["release_date"];
   return typeof raw === "string" && raw ? raw : (item.published_at ?? item.created_at ?? "");
@@ -22,7 +25,7 @@ function dateOf(item: ContentRecord) {
 
 const newest = (items: ContentRecord[]) => [...items].sort((a, b) => dateOf(b).localeCompare(dateOf(a)));
 
-/** Spotlight for the newest real published record across content types; hidden when nothing is published. */
+/** Auto-rotating live spotlight cycling through the newest real published records; hidden when nothing is published. */
 export function ReleaseSpotlight({
   songs,
   videos,
@@ -47,9 +50,29 @@ export function ReleaseSpotlight({
     .filter((e): e is [Kind, ContentRecord] => Boolean(e[1]))
     .sort((a, b) => dateOf(b[1]).localeCompare(dateOf(a[1])));
 
-  const top = latestByKind[0];
-  if (!top) return null;
-  const [kind, item] = top;
+  const count = latestByKind.length;
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const reducedMotion =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    if (count < 2 || paused || reducedMotion) return;
+    timer.current = setInterval(() => setIndex((i) => (i + 1) % count), ROTATE_MS);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [count, paused, reducedMotion]);
+
+  const goTo = useCallback((i: number) => setIndex(i), []);
+
+  if (!count) return null;
+  const active = index % count;
+  const entry = latestByKind[active];
+  if (!entry) return null;
+  const [kind, item] = entry;
   const cfg = KIND[kind];
   const meta = (item.metadata ?? {}) as Record<string, unknown>;
   const cover = resolveMedia(meta, cfg.cover, item.thumbnail_url);
@@ -61,12 +84,23 @@ export function ReleaseSpotlight({
   const isCurrent = player.current?.id === item.id;
 
   return (
-    <section aria-label="Latest release" className="border-b border-gold/25 bg-gradient-to-r from-background via-card to-background">
-      <div className="container-tjc flex flex-col gap-5 py-6 sm:flex-row sm:items-center">
+    <section
+      aria-label="Latest releases"
+      aria-roledescription="carousel"
+      className="relative overflow-hidden border-b border-gold/25 bg-gradient-to-r from-background via-card to-background"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="container-tjc relative flex flex-col gap-5 py-6 sm:flex-row sm:items-center">
         {cover && (
-          <SafeImage src={cover} alt={`${item.title ?? "Release"} cover`} className="size-24 shrink-0 rounded-lg object-cover shadow-lg ring-1 ring-gold/40" />
+          <SafeImage
+            key={item.id}
+            src={cover}
+            alt={`${item.title ?? "Release"} cover`}
+            className="size-24 shrink-0 animate-spotlight-in rounded-lg object-cover shadow-lg ring-1 ring-gold/40"
+          />
         )}
-        <div className="min-w-0 flex-1">
+        <div key={item.id} className="min-w-0 flex-1 animate-spotlight-in">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-gold px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-gold-foreground">
               {cfg.badge}
@@ -79,16 +113,6 @@ export function ReleaseSpotlight({
           </div>
           <h2 className="mt-3 truncate font-display text-2xl font-bold sm:text-3xl">{item.title ?? "Untitled"}</h2>
           <p className="text-sm text-muted-foreground">{[artist, formatDate(date)].filter(Boolean).join(" · ")}</p>
-          {latestByKind.length > 1 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {latestByKind.slice(1).map(([k, rec]) => (
-                <Link key={rec.id} to={KIND[k].to} className="inline-flex max-w-[16rem] items-center gap-1 truncate rounded-full border border-border px-3 py-1 text-xs hover:border-gold hover:text-gold">
-                  <span className="font-semibold text-gold">{KIND[k].badge}:</span>
-                  <span className="truncate">{rec.title ?? "Untitled"}</span>
-                </Link>
-              ))}
-            </div>
-          )}
         </div>
         <div className="flex gap-3">
           {track && (
@@ -101,11 +125,35 @@ export function ReleaseSpotlight({
               {isCurrent && player.playing ? "Pause" : "Play now"}
             </button>
           )}
-          <Link to={cfg.to} className="inline-flex h-12 items-center gap-2 rounded-md border border-border px-5 text-sm font-medium hover:border-gold hover:text-gold">
+          <Link
+            to={cfg.to}
+            className="inline-flex h-12 items-center gap-2 rounded-md border border-border px-5 text-sm font-medium hover:border-gold hover:text-gold"
+          >
             {kind === "song" ? "Listen" : kind === "video" ? "Watch" : "Open"} <ArrowRight className="size-4" />
           </Link>
         </div>
       </div>
+      {count > 1 && (
+        <div className="container-tjc flex items-center gap-2 pb-4" role="tablist" aria-label="Release slides">
+          {latestByKind.map(([k, rec], i) => (
+            <button
+              key={rec.id}
+              type="button"
+              role="tab"
+              aria-selected={i === active}
+              aria-label={`${KIND[k].badge}: ${rec.title ?? "Untitled"}`}
+              onClick={() => goTo(i)}
+              className="group flex h-6 items-center"
+            >
+              <span
+                className={`h-1 rounded-full transition-all duration-500 ${
+                  i === active ? "w-10 bg-gold" : "w-4 bg-border group-hover:bg-gold/50"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
