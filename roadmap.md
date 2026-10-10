@@ -5,4 +5,4 @@
 - [x] Show latest published Discover/releases with periodic refresh.
 - [x] Add source-aware image fallbacks and a canonical hero upload/pick/save control in Site Settings.
 - [x] Verify clean preview checks, real homepage content, no broken rendered images, no public AI launcher, and anonymous AI redirect.
-- [ ] Verify signed-in hero upload/save and AI conversation against live services — blocked by unavailable authenticated session for the externally managed backend.
+- [ ] Verify signed-in hero upload/save and AI conversation against live services — blocked by unavailable authenticated session for the externally managed backend.- [ ] Spotlight banner across songs, videos, posts, projects with type badges + links
