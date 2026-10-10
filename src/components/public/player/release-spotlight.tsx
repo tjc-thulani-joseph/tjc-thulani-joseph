@@ -70,7 +70,9 @@ export function ReleaseSpotlight({
 
   if (!count) return null;
   const active = index % count;
-  const [kind, item] = latestByKind[active];
+  const entry = latestByKind[active];
+  if (!entry) return null;
+  const [kind, item] = entry;
   const cfg = KIND[kind];
   const meta = (item.metadata ?? {}) as Record<string, unknown>;
   const cover = resolveMedia(meta, cfg.cover, item.thumbnail_url);
