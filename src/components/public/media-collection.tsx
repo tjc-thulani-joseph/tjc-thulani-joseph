@@ -12,6 +12,8 @@ import {
 } from "@/lib/media";
 import type { ContentRecord } from "@/types";
 import { SafeImage } from "@/components/public/home/safe-image";
+import { songToTrack, usePlayer } from "@/components/public/player/player";
+import { Play } from "lucide-react";
 
 type Kind =
   | "audio"
@@ -189,6 +191,7 @@ export function MediaCollection({
   emptyTitle,
   emptyBody,
 }: Props) {
+  const player = usePlayer();
   const query = useQuery({
     queryKey: [
       "public",
@@ -240,8 +243,22 @@ export function MediaCollection({
     );
   }
 
+  const tracks =
+    kind === "audio"
+      ? items.map(songToTrack).filter((t): t is NonNullable<typeof t> => t !== null)
+      : [];
+
   return (
     <section className="container-tjc section-y">
+      {tracks.length > 0 && (
+        <button
+          type="button"
+          onClick={() => player.playQueue(tracks)}
+          className="btn-gold mb-8 inline-flex h-12 items-center gap-2 rounded-md px-6 font-semibold text-primary-foreground"
+        >
+          <Play className="size-4" /> Play all ({tracks.length})
+        </button>
+      )}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {items.map(
           (item) => {
@@ -434,12 +451,15 @@ export function MediaCollection({
 
                   {kind ===
                     "audio" &&
-                    (uploadedMedia ? (
-                      <DirectAudio
-                        src={
-                          uploadedMedia
-                        }
-                      />
+                    (uploadedMedia || directExternalMedia ? (
+                      <button
+                        type="button"
+                        onClick={() => player.playQueue(tracks, item.id)}
+                        className="mt-5 inline-flex items-center gap-2 self-start rounded-full border border-gold/60 px-4 py-2 text-sm font-medium text-gold hover:bg-gold hover:text-gold-foreground"
+                      >
+                        <Play className="size-4" />
+                        {player.current?.id === item.id && player.playing ? "Playing" : "Play"}
+                      </button>
                     ) : providerEmbed ? (
                       <div className="mt-5 overflow-hidden rounded-xl border border-border">
                         <ExternalEmbed
