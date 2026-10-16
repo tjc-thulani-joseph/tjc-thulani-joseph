@@ -47,13 +47,21 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:url",
-        content: "/",
+        content: "https://tjc-thulani-joseph.lovable.app/",
+      },
+      {
+        property: "og:image",
+        content: "https://tjc-thulani-joseph.lovable.app/og-share.png",
+      },
+      {
+        name: "twitter:image",
+        content: "https://tjc-thulani-joseph.lovable.app/og-share.png",
       },
     ],
     links: [
       {
         rel: "canonical",
-        href: "/",
+        href: "https://tjc-thulani-joseph.lovable.app/",
       },
     ],
   }),
