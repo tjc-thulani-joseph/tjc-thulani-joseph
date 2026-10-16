@@ -103,6 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -119,7 +120,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           name: SITE.name,
           alternateName: SITE.brand,
           description: SITE.description,
-          url: "/",
+          url: "https://tjc-thulani-joseph.lovable.app/",
+          image: "https://tjc-thulani-joseph.lovable.app/brand-logo.png",
+          logo: {
+            "@type": "ImageObject",
+            url: "https://tjc-thulani-joseph.lovable.app/brand-logo.png",
+            width: 512,
+            height: 512,
+          },
         }),
       },
     ],
